@@ -5,21 +5,12 @@ from threading import Thread, Event
 
 
 class _ViewerBase:
-    """Base class for neuroglancer viewer with a 2 column layout
+    """Base class for neuroglancer viewer
 
-    - "w": toggle viewer layout between xy + 3d view agglomeration & xy + 3d
-        view agglomeration + 3d view base volume
-    - "2"/"3": toggle segmentation layer opacity: "2" for the base volume and
-        "3" for the agglomerated volume
-    - "4": toggle visibility of the annotation layer
-    - "f" : to remove all selected segments from viewer of base volume
-    - "ctrl+delete" to exit viewer and close the browser window
+    key-bindings:
+        - "ctrl+delete" to exit viewer and close the browser window
 
     Attributes:
-        raw_layer (str) :  name of the raw data layer
-        aggl_layer (str) : name of the agglomerated segmentation volume layer
-        base_layer (str) : name of the base segmentation volume layer
-        anno_layer (str) : name of the annotation layer
         _driver (selenium.webdriver.chrome.webdriver.WebDriver) : webdriver to
                                                                     run browser
         stopTimer (threading.Event) : event for autosave timer is set at
@@ -27,7 +18,10 @@ class _ViewerBase:
         lock (threading.Lock) : lock to ensure data is not modified while saving
         exit_event (threading.Event) : while this event is not set the server is
                                         running
-    """
+        optional:
+        annotation : see class Annotations
+        timer : see class Timer
+        """
 
     def __init__(self,
                  raw_data,
@@ -35,22 +29,20 @@ class _ViewerBase:
                  annotation=False,
                  timer_interval=None,
                  **kwargs):
-        """Initiates NeuronProofreading class by:
+        """Initiates viewer base class by
 
-        - initiating the neuroglancer viewer
+        - initiating the neuroglancer viewer with a 'x-3D' layout
+        - setting keyboard function
         - starting browser
 
         Args:
-            dir_path (str) : path to directory for file saving
-            base_vol (str) : base segmentation volume id :
-                            data_src:project:dataset:volume_name
-            raw_data (str) : image data volume id :
-                            data_src:project:dataset:volume_name
-            data (dict) : data from previous review session (optional):
-            autosave_interval (int) : autosave interval in sec (optional)
-            agglo_vol (str) : base segmentation volume id :
-                            data_src:project:dataset:volume_name:change_stack_id
-                            optional, defaults to base volume id
+            raw_data (str) : full id of the raw data layer in form of
+                        "src:projectId:datasetId:volumeId"
+            layers (dict) : dict with layer names as keys and layer ids as values
+            annotation(Boolean) : determines whether to build a viewer with
+                                annotation layer, optional
+            timer_interval (int) : interval betweenn timer execution, if set
+                                adds a timer to the viewer, optional
         """
         self.viewer = neuroglancer.Viewer()
         if annotation:
@@ -190,6 +182,20 @@ class _ViewerBase:
 
 
 class _ViewerBase2Col(_ViewerBase):
+    """Class for neuroglancer viewer with a 2 column layout
+
+    key-bindings:
+        - "w": toggle viewer layout between xy + 3d view agglomeration & xy + 3d
+        view agglomeration + 3d view base volume
+        - "ctrl+delete" to exit viewer and close the browser window
+
+        Attributes:
+            layer_names (list) : list of layer names
+            seg_vol1(list) : list of layer names for the first layer (to which
+                            the optional annotation gets linked)
+            _first_layer : flag to toggle between first and second segmentation
+            layer
+    """
     def __init__(self,
                  raw_data,
                  layers={},
@@ -199,15 +205,11 @@ class _ViewerBase2Col(_ViewerBase):
         Args:
             raw_data (str) : image data volume id :
                             data_src:project:dataset:volume_name
-            base_vol (str) : base segmentation volume id :
-                            data_src:project:dataset:volume_name
-            agglo_vol (str) : base segmentation volume id :
-                            data_src:project:dataset:volume_name:change_stack_id
-                            optional, defaults to base volume id
+            layers (dict) : dict with layer names as keys and layer ids as values
         """
         self.layer_names = ['raw'] + list(layers.keys())
         self.seg_vol1 = [self.layer_names[1]]
-        self._toggle_layer = True
+        self._first_layer = True
         super().__init__(raw_data, layers, **kwargs)
 
     def _init_viewer(self, raw_data, layers={}):
@@ -237,12 +239,16 @@ class _ViewerBase2Col(_ViewerBase):
     def _toggle_layout(self, n_rows=None):
         """toggles viewer layout between 2 column (xy + agglomerated volume
         layer 3D) and 3 column layout (xy + agglomerated volume layer 3D + base
-        volume layer)"""
+        volume layer)
+
+        Args:
+            n_rows (int) : number of rows of the viewer
+        """
         s = deepcopy(self.viewer.state)
         if not n_rows:
             if len(s.layout) == 3:
                 n_rows = 2
-            elif len(s.layout) == 2 and not self._toggle_layer:
+            elif len(s.layout) == 2 and not self._first_layer:
                 n_rows = 2
             else:
                 n_rows = 3
@@ -257,15 +263,15 @@ class _ViewerBase2Col(_ViewerBase):
                                               layers=[self.layer_names[2]]),
             ])
         else:
-            if self._toggle_layer:
+            if self._first_layer:
                 layer = neuroglancer.LayerGroupViewer(layout='3d',
                                                       layers=self.seg_vol1)
-                self._toggle_layer = False
+                self._first_layer = False
             else:
                 layer = neuroglancer.LayerGroupViewer(layout='3d',
                                                       layers=[
                                                           self.layer_names[2]])
-                self._toggle_layer = True
+                self._first_layer = True
             s.layout = neuroglancer.row_layout(
                 [neuroglancer.LayerGroupViewer(layout='xy',
                                                layers=self.layer_names), layer])
@@ -281,8 +287,16 @@ class _ViewerBase2Col(_ViewerBase):
             s.input_event_bindings.data_view['keyw'] = 'toggle_layout'
 
 
-class Annotations:  # AutoSave(_ViewerBase) or AutoSave(_ViewerBase2Col)
+class Annotations:
+    """Class that adds functionality to add annotations in neuroglancer
+    """
     def __init__(self, anno_id=0, viewer=None):
+        """initiates Annotations class
+
+        Args:
+            anno_id (int): id of the next annotation
+            viewer: viewer (neuroglancer.viewer)
+        """
         self.anno_id = anno_id
         self.viewer = viewer
 
@@ -333,21 +347,30 @@ class Annotations:  # AutoSave(_ViewerBase) or AutoSave(_ViewerBase2Col)
 
 
 class Timer:
-    def __init__(self, interval):
+    """Timer that executes function at defined time intervals
+
+    Attributes:
+        stopTimer (threading.Event)
+        interval (int) : interval between function execution
+        _func = function to execute
+    """
+    def __init__(self, interval, _func=None):
+        """
+
+        Args:
+            interval (int) : time in sec between timer function execution
+        """
         self.stopTimer = Event()
         self.interval = interval
-        self._func = None
+        self._func = _func
 
-    def start_timer(self, func):
+    def start_timer(self, func=None):
         self._func = func
         Thread(target=self._timer_fcn, args=(self.interval,),
                daemon=True).start()
 
-    def _timer_fcn(self, interval):
-        """timer function to trigger saving data automatically at interval sec
-
-        Args:
-            interval (int) : interval in sec.
+    def _timer_fcn(self):
+        """timer function to trigger function at interval sec
         """
-        while not self.stopTimer.wait(interval):
+        while not self.stopTimer.wait(self.interval):
             self._func()
