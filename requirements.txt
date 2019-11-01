@@ -1,0 +1,3 @@
+selenium
+neuroglancer
+git+https://github.com/moenigin/brainmaps_api_fcn.git@master
