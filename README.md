@@ -68,4 +68,4 @@ For list of arguments see
 python run_proofreading.py -h
 ```
 
-for usage instructions see manual
+for usage instructions see [instructions](/instructions.md)
