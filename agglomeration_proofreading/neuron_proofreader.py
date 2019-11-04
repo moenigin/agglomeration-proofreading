@@ -394,6 +394,10 @@ class NeuronProofreading(_ViewerBase2Col):
        """
         sv = self._get_sv_id(action_state)
         if type(sv) == int:
+            if sv not in self.graph.keys():
+                msg = 'Cursor misplaced. Segment' + sv + 'was not found in the graph'
+                self.upd_msg(msg)
+                return
             self.action_history.append(
                 {'del_segment': deepcopy(self.graph.graph)})
             idx = next(idx for idx, members in self.graph.cc.items()

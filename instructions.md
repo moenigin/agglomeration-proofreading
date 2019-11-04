@@ -31,7 +31,7 @@ example: <br/>
 
 ![false merger3](/manual_pictures/FalseMerger_split.png)
 
-3.  If the merged branches were successfully, hover over the segment/branch that does not belong to the target neuron and confirm the merge split by pressing 'k'. <br />
+3.  If the merged branches were split successfully, hover over the segment/branch that does not belong to the target neuron and confirm the merge split by pressing 'k'. <br />
 
 ![false merger4](/manual_pictures/FalseMerger_corrected.png)
 
