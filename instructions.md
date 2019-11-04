@@ -6,7 +6,7 @@ Reconstruction starts with one segment, usually containing the soma. From there 
 ## 1. merging false splits
 
 example: <br/>
-<<<<<<< HEAD
+
 ![false split1](/manual_pictures/False_split.png)
 
 1. move the cursor above the falsely split segment and press 'q', try to target a location close to the target branch!
@@ -17,6 +17,7 @@ example: <br/>
 ## 2. splitting false agglomeration mergers
 
 example: <br/>
+
 ![false merger1](/manual_pictures/FalseMerger.png)
 
 1. Move the cursor to one of the segments that is likely to be involved in the false merger and press 'c'. All segments connected to this segment are displayed:<br />
@@ -37,17 +38,21 @@ example: <br/>
 ## 3. removing groups of falsely merged segments
 
 example: <br/>
+
 ![false merger](/manual_pictures/FalseMergedGroup.png)
 
 This serves to remove larger groups of segments that should be split from the target branch. It does not preserve the connections of the segments to any other branch! This can be helpful to remove larger groups of segments covering membranes or ECS that are merged to the target neuron.<br />
 IMPORTANT: before using this, first make sure to empty the base volume viewport ('f')
 
-1. Select any segment in the base volume that should be removed. Press 'ctrl+bracketright' to split off the merged segments. The viewer updates and shows the segments in the neuron graph. <br />
+1. Select any segment in the base volume that should be removed. Press 'ctrl+bracketright' to split off the merged segments. 
 
 ![falsely merged group1](/manual_pictures/FalseMergedGroup_grouptoremove.png)
+
+2. The viewer updates and shows the segments in the neuron graph. <br />
+
 ![falsely merged group2](/manual_pictures/FalseMergedGroup_separated.png)
 
-2. segments that do not belong to the neuron that is reconstructed can be removed by moving the cursor to the segment and pressing 'shift+f'
+3. segments that do not belong to the neuron that is reconstructed can be removed by moving the cursor to the segment and pressing 'shift+f'
 
 ![falsely merged group3](/manual_pictures/FalseMergedGroup_corrected.png)
 
