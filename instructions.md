@@ -4,29 +4,50 @@ The goal is to reconstruct whole cells in a segmentation by correcting mistakes 
 Reconstruction starts with one segment, usually containing the soma. From there follow along one neurite and add falsely split segments and remove falsely merged segments.
 
 ## 1. merging false splits
+
 example: <br/>
-![false merger](/manual_pictures/FalseSplit.png)
+![false merger](/manual_pictures/False_split.png)
+
 1. move the cursor above the falsely split segment and press 'q', try to target a location close to the target branch!
 2. move the cursor above the target branch close to the falsely split segment and press 'd' <br />
-![false merger](/manual_pictures/FalseSplit_corrected.png)
+
+![false merger](/manual_pictures/False_split_corrected.png)
 
 ## 2. splitting false agglomeration mergers
+
 example: <br/>
 ![false merger](/manual_pictures/FalseMerger.png)
+
 1. Move the cursor to one of the segments that is likely to be involved in the false merger and press 'c'. All segments connected to this segment are displayed:
+
 ![false merger](/manual_pictures/FalseMerger_connectedPartners.png)
+
 2. Find the wrongly merged pair:
     * If the segment is not merged to one in the wrong branch, hover over the next segment in the base volume and press 'c' again.
     * If a merged segment is found, move the cursor to this segment and split edges by pressing 'ctrl + x'. The viewer will refresh. <br />
+
 ![false merger](/manual_pictures/FalseMerger_split.png)
+
 3.  If the merged branches were successfully, hover over the segment/branch that does not belong to the target neuron and confirm the merge split by pressing 'k'. <br />
+
 ![false merger](/manual_pictures/FalseMerger_corrected.png)
 
 ## 3. removing groups of falsely merged segments
-This serves to remove larger groups of segments that should be split from the target branch. It does not preserve the connections of the segments to any other branch! This can be helpful to remove larger groups of segments covering membranes or ECS that are merged to the target neuron.
+
+example: <br/>
+![false merger](/manual_pictures/FalseMergedGroup.png)
+
+This serves to remove larger groups of segments that should be split from the target branch. It does not preserve the connections of the segments to any other branch! This can be helpful to remove larger groups of segments covering membranes or ECS that are merged to the target neuron.<br />
 IMPORTANT: before using this, first make sure to empty the base volume viewport ('f')
-1. Select any segment in the base volume that should be removed. Press 'ctrl+bracketright' to split off the merged segments. The viewer updates and shows the segments in the neuron graph
+
+1. Select any segment in the base volume that should be removed. Press 'ctrl+bracketright' to split off the merged segments. The viewer updates and shows the segments in the neuron graph. <br />
+
+![false merger](/manual_pictures/FalseMergedGroup_grouptoremove.png)
+![false merger](/manual_pictures/FalseMergedGroup_separated.png)
+
 2. segments that do not belong to the neuron that is reconstructed can be removed by moving the cursor to the segment and pressing 'shift+f'
+
+![false merger](/manual_pictures/FalseMergedGroup_corrected.png)
 
 ## 4. branch points
 * to set a branch point move the viewport location to the merge site (e.g. right click) and press 'y'
