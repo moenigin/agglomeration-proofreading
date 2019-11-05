@@ -366,8 +366,7 @@ class Timer:
 
     def start_timer(self, func=None):
         self._func = func
-        Thread(target=self._timer_fcn, args=(self.interval,),
-               daemon=True).start()
+        Thread(target=self._timer_fcn, daemon=True).start()
 
     def _timer_fcn(self):
         """timer function to trigger function at interval sec
