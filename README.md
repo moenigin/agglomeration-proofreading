@@ -22,7 +22,7 @@ The proofreading tool needs [chrome](https://www.google.com/chrome/) and ChromeD
   ```
   navigate to the proofreading folder and install the downloaded environment.yml,
   ```
-  cd agglomeration_proofreading
+  cd agglomeration-proofreading
   conda env create -f apr.yml
   ```
   activate the environment and install the remaining requirements
@@ -46,7 +46,7 @@ The proofreading tool needs [chrome](https://www.google.com/chrome/) and ChromeD
   navigate to the agglomeration-proofreading subfolder and install requirements
 
   ```
-  cd agglomeration_proofreading
+  cd agglomeration-proofreading
   pip install -r requirements.txt
   ```
   </p>
@@ -58,7 +58,7 @@ The proofreading tool needs [chrome](https://www.google.com/chrome/) and ChromeD
 To run the proofreading tool type in the prompt
 
 ```
-python run_roofreading.py
+python run_proofreading.py
 ```
 
 The configuration of the proofreading tool can be adapted either through editing the proofreading.ini or by passing arguments directly in the prompt.

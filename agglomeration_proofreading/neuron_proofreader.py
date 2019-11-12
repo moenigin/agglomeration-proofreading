@@ -380,7 +380,11 @@ class NeuronProofreading(_ViewerBase2Col):
             self.action_history.append(
                 {'add_segment': deepcopy(self.graph.graph)})
             edges = self.graph_tools.get_graph(sv)
-            self.graph.add_edge(edges)
+            if type(edges[0]
+                    ) == int:  # segment has no partner in agglomeration
+                self.graph.add_node(edges[0])
+            else:
+                self.graph.add_edge(edges)
             self._upd_viewer()
 
     def _del_sv_from_neuron(self, action_state):
