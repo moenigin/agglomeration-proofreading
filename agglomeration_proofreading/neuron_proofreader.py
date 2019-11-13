@@ -398,7 +398,7 @@ class NeuronProofreading(_ViewerBase2Col):
        """
         sv = self._get_sv_id(action_state)
         if type(sv) == int:
-            if sv not in self.graph.keys():
+            if sv not in self.graph.graph.keys():
                 msg = 'Cursor misplaced. Segment' + sv + 'was not found in the graph'
                 self.upd_msg(msg)
                 return
