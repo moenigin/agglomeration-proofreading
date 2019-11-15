@@ -58,8 +58,9 @@ IMPORTANT: before using this, first make sure to empty the base volume viewport 
 
 ## 4. branch points
 * to set a branch point move the viewport location to the merge site (e.g. right click) and press 'y'
-* to jump to the last unfinished branch location press '`'
-* to tag a branch point as visited press 'ctrl + r'. It will be annotated with an ellipsoid and not be revisited when pressing '`'.
+* to jump to the last unfinished branch location press '7'
+* to tag a branch point as visited press 'ctrl + r'. It will be annotated with an ellipsoid and not be revisited when pressing '7'.
+* to remove a branch point annotation hover the cursor over the ellipsoid and press '0'
 
 ## 5. storing segmentation merger locations
 * move the viewport center to the merge site (e.g. right click) and press 'm'

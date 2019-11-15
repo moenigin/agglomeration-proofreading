@@ -2,6 +2,8 @@ import neuroglancer
 import os
 import pickle
 
+import numpy as np
+
 from copy import deepcopy
 from datetime import datetime
 from threading import Lock
@@ -235,10 +237,14 @@ class NeuronProofreading(_ViewerBase2Col):
         self.viewer.actions.add('empty_base_vol',
                                 lambda s: self._upd_viewer_segments(
                                     self.base_layer, []))
+        self.viewer.actions.add('delete_closest_annotation',
+                                self.delete_closest_annotation)
 
         with self.viewer.config_state.txn() as s:
             s.input_event_bindings.data_view['dblclick0'] = 'select-custom'
             s.input_event_bindings.data_view['keyq'] = 'get_first_sv_to_merge'
+            s.input_event_bindings.data_view[
+                'digit0'] = 'delete_closest_annotation'
             s.input_event_bindings.viewer['keyd'] = 'set_equivalence'
             s.input_event_bindings.viewer['keyc'] = 'show_connected_partners'
             s.input_event_bindings.viewer['control+keyx'] = 'split_merger'
@@ -251,7 +257,7 @@ class NeuronProofreading(_ViewerBase2Col):
             s.input_event_bindings.viewer['keyy'] = 'set_branch_point'
             s.input_event_bindings.viewer['control+keyr'] = 'remove_branchpoint'
             s.input_event_bindings.viewer[
-                'backquote'] = 'jump_to_last_branchpoint'
+                'digit7'] = 'jump_to_last_branchpoint'
             s.input_event_bindings.viewer['control+keys'] = 'save_data'
             s.input_event_bindings.viewer['control+keyz'] = 'undo_last_action'
             s.input_event_bindings.viewer['keyp'] = 'store_misalignment_loc'
@@ -399,7 +405,8 @@ class NeuronProofreading(_ViewerBase2Col):
         sv = self._get_sv_id(action_state)
         if type(sv) == int:
             if sv not in self.graph.graph.keys():
-                msg = 'Cursor misplaced. Segment' + sv + 'was not found in the graph'
+                msg = 'Cursor misplaced. Segment' + str(sv) + \
+                      'was not found in the graph'
                 self.upd_msg(msg)
                 return
             self.action_history.append(
@@ -505,6 +512,23 @@ class NeuronProofreading(_ViewerBase2Col):
         else:
             msg = 'no branch point found'
             self.upd_msg(msg)
+
+    def delete_closest_annotation(self, action_state):
+        s = deepcopy(self.viewer.state)
+        annotations = s.layers[''].annotations
+        id_loc_map = list()
+        for item in annotations:
+            id_loc_map.append(item.center)
+        try:
+            picked_coord = np.array(action_state.mouseVoxelCoordinates)
+            idx = np.linalg.norm(picked_coord - np.array(id_loc_map),
+                                 axis=1).argmin()
+
+            annotations.pop(idx)
+            self.viewer.set_state(s)
+        except KeyError:
+            self.upd_msg('could not delete annotation')
+            return
 
     # MERGE FALSE SPLITS
     def _first_svid_for_merging(self, action_state):
