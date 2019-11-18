@@ -130,6 +130,8 @@ class NeuronProofreading(_ViewerBase2Col):
                             saving these attributes
         dir_path (str) : path to the directory to save revision data
         anno_id (int) : counter to give an index to ellipsoid annotations
+        remove_token (boolean) : flag that decides whether to remove api-token
+                                upon exit of the program
     """
 
     def __init__(self,
@@ -138,7 +140,8 @@ class NeuronProofreading(_ViewerBase2Col):
                  base_vol,
                  raw_data,
                  data=None,
-                 timer_interval=300):
+                 timer_interval=300,
+                 remove_token=True):
         """Initiates NeuronProofreading class by:
 
         - initiating attributes, if available loading data from previous
@@ -154,11 +157,15 @@ class NeuronProofreading(_ViewerBase2Col):
                             data_src:project:dataset:volume_name
             raw_data (str) : image data volume id :
                             data_src:project:dataset:volume_name
-            data (dict) : data from previous review session (optional):
-            autosave_interval (int) : autosave interval in sec (optional)
+            data (dict) : data from previous review session (optional)
+            timer_interval (int) : autosave interval in sec (optional)
+            remove_token (boolean) : flag that decides whether to remove
+                                    api-token upon exit of the program
+                                    (optional)
         """
 
         # set (default) attributes
+        self.remove_token = remove_token
         self.set_edge_ids = []
         self.set_edge_loc = []
         self.del_edge_ids = []
@@ -196,6 +203,12 @@ class NeuronProofreading(_ViewerBase2Col):
     def exit(self):
         self._auto_save()
         super().exit()
+        if self.remove_token:
+            try:
+                os.remove(os.path.expanduser('~/.apitools.token'))
+            except FileNotFoundError:
+                print(os.path.expanduser('~/.apitools.token'), ' was not found \
+                - apitoken could not be removed')
 
     # VIEWER SETUP
     def _set_keybindings(self):

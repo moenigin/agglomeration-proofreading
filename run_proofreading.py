@@ -41,7 +41,8 @@ def run_proofreading(args):
                               graph_tool=graph_tool,
                               base_vol=base_path,
                               raw_data=raw_path,
-                              timer_interval=args.save_int)
+                              timer_interval=args.save_int,
+                              remove_token=args.remove_token)
     aobr.exit_event.wait()
 
 
@@ -82,6 +83,12 @@ if __name__ == '__main__':
     ap.add_argument('-save_int',
                     type=int,
                     help='interval in which automatic data saving is triggered')
+
+    ap.add_argument('-remove_token',
+                    type=bool,
+                    help='flag that decides whether to delete the token created'
+                         ' by authenticating to neuroglancer upon exit of the '
+                         'program')
 
     ap.set_defaults(func=run_proofreading)
 

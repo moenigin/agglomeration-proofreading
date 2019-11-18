@@ -69,3 +69,8 @@ python run_proofreading.py -h
 ```
 
 for usage instructions see [instructions](/instructions.md)
+
+## Authentication
+The tool requires users to be registered with Viewer role to a google cloud project that stores the segmentation data. Additional access to the BrainMaps API requires a service account file with Editor role. 
+
+During authentication to neuroglancer a .apitoken file is created in the user folder. Per default this file will be deleted when exiting the program with ctrl+delete. This requires the user to authenticate every time the program is started. To avoid this and maintain the apitoken start the program with -remove_token False from the command prompt or set the flag to False in the proofreading.ini.   
