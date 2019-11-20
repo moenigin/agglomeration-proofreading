@@ -36,14 +36,14 @@ def run_proofreading(args):
     graph_tool = GraphTools(api_fcn=API_fcn)
     base_path = args.data_src + args.base_volume
     raw_path = args.data_src + args.raw_data
-    aobr = NeuronProofreading(dir_path=args.dir_path,
+    with NeuronProofreading(dir_path=args.dir_path,
                               data=review_data,
                               graph_tool=graph_tool,
                               base_vol=base_path,
                               raw_data=raw_path,
                               timer_interval=args.save_int,
-                              remove_token=args.remove_token)
-    aobr.exit_event.wait()
+                              remove_token=args.remove_token) as aobr:
+        aobr.exit_event.wait()
 
 
 if __name__ == '__main__':
@@ -85,7 +85,6 @@ if __name__ == '__main__':
                     help='interval in which automatic data saving is triggered')
 
     ap.add_argument('-remove_token',
-                    type=bool,
                     help='flag that decides whether to delete the token created'
                          ' by authenticating to neuroglancer upon exit of the '
                          'program')

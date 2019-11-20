@@ -3,6 +3,10 @@
 The goal is to reconstruct whole cells in a segmentation by correcting mistakes of the agglomeration. Agglomeration mistakes are either false segment splits or false mergers. False segmentation mergers cannot be fixed with this tool, their location should be stored to correct otherwise.
 Reconstruction starts with one segment, usually containing the soma. From there follow along one neurite and add falsely split segments and remove falsely merged segments.
 
+## Keybindings
+
+The instructions below refer to the default keybindings for a US keyboard. On a different keyboard functions will be bound to another symbol. Whatever key is in the physical position of the key specified for a US keyboard will execute the respective function. Pdf instructions for German and Swiss keyboards (Windows) will follow. 
+
 ## 1. merging false splits
 
 example: <br/>

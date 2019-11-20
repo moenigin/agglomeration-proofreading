@@ -83,5 +83,9 @@ def determine_args(ap_args):
             setattr(args, key, config['DEFAULTS'][key])
 
     args.save_int = int(args.save_int)
+    if args.remove_token.lower() in ('yes', 'true', 't', 'y', '1'):
+        args.remove_token = True
+    elif args.remove_token.lower() in ('no', 'false', 'f', 'n', '0'):
+        args.remove_token = False
 
     return args

@@ -68,9 +68,11 @@ For list of arguments see
 python run_proofreading.py -h
 ```
 
+ATTENTION: On Windows10 Ctrl-C will not work to exit the program because the tool uses threading.Event. For more information see [here](https://bugs.python.org/issue35935).  
+
 for usage instructions see [instructions](/instructions.md)
 
 ## Authentication
-The tool requires users to be registered with Viewer role to a google cloud project that stores the segmentation data. Additional access to the BrainMaps API requires a service account file with Editor role. 
+The tool requires users to be registered with Viewer role to a Google cloud project that stores the segmentation data. Additional access to the BrainMaps API requires a service account file with Editor role. 
 
-During authentication to neuroglancer a .apitoken file is created in the user folder. Per default this file will be deleted when exiting the program with ctrl+delete. This requires the user to authenticate every time the program is started. To avoid this and maintain the apitoken start the program with -remove_token False from the command prompt or set the flag to False in the proofreading.ini.   
+During authentication to neuroglancer an .apitoken file is created in the user folder. Per default this file will be deleted when exiting the program. In consequence the user needs to authenticate every time the program is started. Users, that wish to avoid this and maintain the apitoken, should start the program with -remove_token False from the command prompt or set the flag to False in the proofreading.ini.   

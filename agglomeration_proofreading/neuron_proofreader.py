@@ -165,7 +165,6 @@ class NeuronProofreading(_ViewerBase2Col):
         """
 
         # set (default) attributes
-        self.remove_token = remove_token
         self.set_edge_ids = []
         self.set_edge_loc = []
         self.del_edge_ids = []
@@ -186,7 +185,8 @@ class NeuronProofreading(_ViewerBase2Col):
         super(NeuronProofreading, self).__init__(raw_data=raw_data,
                                                  layers=layers,
                                                  annotation=True,
-                                                 timer_interval=timer_interval)
+                                                 timer_interval=timer_interval,
+                                                 remove_token=remove_token)
 
         # initiate stuff
         with self.viewer.txn() as s:
@@ -202,13 +202,7 @@ class NeuronProofreading(_ViewerBase2Col):
     # autosave upon exit
     def exit(self):
         self._auto_save()
-        super().exit()
-        if self.remove_token:
-            try:
-                os.remove(os.path.expanduser('~/.apitools.token'))
-            except FileNotFoundError:
-                print(os.path.expanduser('~/.apitools.token'), ' was not found \
-                - apitoken could not be removed')
+        self.exit_event.set()
 
     # VIEWER SETUP
     def _set_keybindings(self):
@@ -252,6 +246,7 @@ class NeuronProofreading(_ViewerBase2Col):
                                     self.base_layer, []))
         self.viewer.actions.add('delete_closest_annotation',
                                 self.delete_closest_annotation)
+        self.viewer.actions.add('exit_revision', lambda s: self.exit())
 
         with self.viewer.config_state.txn() as s:
             s.input_event_bindings.data_view['dblclick0'] = 'select-custom'
@@ -280,6 +275,7 @@ class NeuronProofreading(_ViewerBase2Col):
             s.input_event_bindings.viewer[
                 'digit3'] = 'toggle_opacity_base'
             s.input_event_bindings.viewer['keyf'] = 'empty_base_vol'
+            s.input_event_bindings.viewer['control+delete'] = 'exit_revision'
 
     # VIEWER INTERACTION
     def _handle_select(self, action_state):
@@ -442,21 +438,27 @@ class NeuronProofreading(_ViewerBase2Col):
                           'misalignment_locations'
                 values : list
         """
-        for name in self.var_names:
-            temp = CustomList([])
-            temp += data[name]
-            setattr(self, name, temp)
-        self.graph.graph = data['neuron_graph']
-        self.graph.update_cc()
-        self._upd_viewer()
-        annocount = 0
-        if any(self.branch_point):
-            for point in self.branch_point:
-                if point[1]:
-                    annocount += 1
-                    self.annotation._make_ellipsoid('', point[0])
-        self.annotation.anno_id = annocount
-        self.set_viewer_loc(data['last_position'])
+        try:
+            for name in self.var_names:
+                temp = CustomList([])
+                temp += data[name]
+                setattr(self, name, temp)
+            self.graph.graph = data['neuron_graph']
+            self.graph.update_cc()
+            self._upd_viewer()
+            annocount = 0
+            if any(self.branch_point):
+                for point in self.branch_point:
+                    if point[1]:
+                        annocount += 1
+                        self.annotation._make_ellipsoid('', point[0])
+            self.annotation.anno_id = annocount
+            self.set_viewer_loc(data['last_position'])
+        except:
+            msg = 'Data from previous review could not be loaded. Start review ' \
+                  'from scratch or check latest review file'
+            self.upd_msg(msg)
+            return
 
     def _auto_save(self):
         """Checks whether variables that need to be stored have been modified

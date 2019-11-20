@@ -1,4 +1,5 @@
 import neuroglancer
+import os
 from copy import deepcopy
 from selenium import webdriver
 from threading import Thread, Event
@@ -16,8 +17,9 @@ class _ViewerBase:
         stopTimer (threading.Event) : event for autosave timer is set at
                                         interval sec
         lock (threading.Lock) : lock to ensure data is not modified while saving
-        exit_event (threading.Event) : while this event is not set the server is
-                                        running
+        exit_event (threading.Event) : by calling wait on this event it can be
+                                    used to keep the python server running. Exit
+                                    functions should then set this event
         optional:
         annotation : see class Annotations
         timer : see class Timer
@@ -28,6 +30,7 @@ class _ViewerBase:
                  layers={},
                  annotation=False,
                  timer_interval=None,
+                 remove_token=True,
                  **kwargs):
         """Initiates viewer base class by
 
@@ -53,11 +56,19 @@ class _ViewerBase:
         if timer_interval is not None:
             self.timer = Timer(timer_interval)
 
+        self.remove_token = remove_token
         self.exit_event = Event()
         self._driver = None
         self._init_viewer(raw_data, layers)
         self._set_keybindings()
         self._run_browser()
+
+    # CONTEXT MANAGER PROTOCOL
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self._clean_exit()
 
     # VIEWER SETUP
     def _init_viewer(self, raw_data, layers={}):
@@ -90,11 +101,7 @@ class _ViewerBase:
 
     def _set_keybindings(self):
         """Binds key board events to call back functions"""
-        self.viewer.actions.add('exit_revision',
-                                lambda s: self.exit())
-
-        with self.viewer.config_state.txn() as s:
-            s.input_event_bindings.viewer['control+delete'] = 'exit_revision'
+        pass
 
     # BROWSER
     def _run_browser(self):
@@ -106,9 +113,16 @@ class _ViewerBase:
         self._driver.get(self.viewer.get_viewer_url())
 
     # EXIT
-    def exit(self):
+    def _clean_exit(self):
         self._driver.quit()
-        self.exit_event.set()
+        if self.remove_token:
+            try:
+                os.remove(os.path.expanduser('~/.apitools.token'))
+                os.remove(os.path.expanduser('~/.apitools.token.lock'))
+            except FileNotFoundError:
+                print(os.path.expanduser('~/.apitools.token'),
+                      ' was not found - apitoken could not be removed')
+
         if hasattr(self, 'timer'):
             self.timer.stopTimer.set()
 
@@ -196,6 +210,7 @@ class _ViewerBase2Col(_ViewerBase):
             _first_layer : flag to toggle between first and second segmentation
             layer
     """
+
     def __init__(self,
                  raw_data,
                  layers={},
@@ -290,6 +305,7 @@ class _ViewerBase2Col(_ViewerBase):
 class Annotations:
     """Class that adds functionality to add annotations in neuroglancer
     """
+
     def __init__(self, anno_id=0, viewer=None):
         """initiates Annotations class
 
@@ -354,6 +370,7 @@ class Timer:
         interval (int) : interval between function execution
         _func = function to execute
     """
+
     def __init__(self, interval, _func=None):
         """
 
