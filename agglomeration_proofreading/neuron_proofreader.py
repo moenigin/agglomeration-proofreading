@@ -208,7 +208,7 @@ class NeuronProofreading(_ViewerBase2Col):
     def _set_keybindings(self):
         """Binds key board events to call back functions"""
         super()._set_keybindings()
-        self.viewer.actions.add('select-custom', self._handle_select)
+        self.viewer.actions.add('select', self._handle_select)
         self.viewer.actions.add('get_first_sv_to_merge',
                                 self._first_svid_for_merging)
         self.viewer.actions.add('set_equivalence', self._merge_segments)
@@ -218,8 +218,6 @@ class NeuronProofreading(_ViewerBase2Col):
                                 lambda s: self.remove_branch_loc())
         self.viewer.actions.add('jump_to_last_branchpoint',
                                 lambda s: self._jump_to_branch_loc())
-        self.viewer.actions.add('store_misalignment_loc',
-                                lambda s: self._store_misalignment_loc())
         self.viewer.actions.add('store_merger_loc',
                                 lambda s: self._store_merger_loc())
         self.viewer.actions.add('show_connected_partners',
@@ -229,7 +227,7 @@ class NeuronProofreading(_ViewerBase2Col):
                                 self._confirm_merge_split)
         self.viewer.actions.add('remove_merged_group',
                                 lambda s: self._remove_merged_group())
-        self.viewer.actions.add('toggle_neuron_display',
+        self.viewer.actions.add('toggle_neuron',
                                 lambda s: self._toggle_neuron())
         self.viewer.actions.add('del_sv_from_neuron', self._del_sv_from_neuron)
         self.viewer.actions.add('add_sv_to_neuron',
@@ -248,34 +246,12 @@ class NeuronProofreading(_ViewerBase2Col):
                                 self.delete_closest_annotation)
         self.viewer.actions.add('exit_revision', lambda s: self.exit())
 
-        with self.viewer.config_state.txn() as s:
-            s.input_event_bindings.data_view['dblclick0'] = 'select-custom'
-            s.input_event_bindings.data_view['keyq'] = 'get_first_sv_to_merge'
-            s.input_event_bindings.data_view[
-                'digit0'] = 'delete_closest_annotation'
-            s.input_event_bindings.viewer['keyd'] = 'set_equivalence'
-            s.input_event_bindings.viewer['keyc'] = 'show_connected_partners'
-            s.input_event_bindings.viewer['control+keyx'] = 'split_merger'
-            s.input_event_bindings.viewer['keyk'] = 'confirm_merge_split'
-            s.input_event_bindings.viewer[
-                'control+bracketright'] = 'remove_merged_group'
-            s.input_event_bindings.viewer['keyn'] = 'toggle_neuron_display'
-            s.input_event_bindings.viewer['control+keya'] = 'add_sv_to_neuron'
-            s.input_event_bindings.viewer['shift+keyf'] = 'del_sv_from_neuron'
-            s.input_event_bindings.viewer['keyy'] = 'set_branch_point'
-            s.input_event_bindings.viewer['control+keyr'] = 'remove_branchpoint'
-            s.input_event_bindings.viewer[
-                'digit7'] = 'jump_to_last_branchpoint'
-            s.input_event_bindings.viewer['control+keys'] = 'save_data'
-            s.input_event_bindings.viewer['control+keyz'] = 'undo_last_action'
-            s.input_event_bindings.viewer['keyp'] = 'store_misalignment_loc'
-            s.input_event_bindings.viewer['keym'] = 'store_merger_loc'
-            s.input_event_bindings.viewer[
-                'digit2'] = 'toggle_opacity_agglomeration'
-            s.input_event_bindings.viewer[
-                'digit3'] = 'toggle_opacity_base'
-            s.input_event_bindings.viewer['keyf'] = 'empty_base_vol'
-            s.input_event_bindings.viewer['control+delete'] = 'exit_revision'
+        _DEFAULT_DIR = os.path.dirname(os.path.abspath(__file__))
+        fn = 'KEYBINDINGS_proofreader.ini'
+        config_file = os.path.join(_DEFAULT_DIR, fn)
+        if not os.path.exists(config_file):
+            raise FileNotFoundError
+        self._bind_pairs(config_file)
 
     # VIEWER INTERACTION
     def _handle_select(self, action_state):
@@ -490,9 +466,6 @@ class NeuronProofreading(_ViewerBase2Col):
             pickle.dump(new_data, f)
         for name in self.var_names:
             setattr(getattr(self, name), 'unsaved_changes', False)
-
-    def _store_misalignment_loc(self):
-        self.misalignment_locations.append(self.get_viewport_loc())
 
     def _store_merger_loc(self):
         self.segmentation_merger_loc.append(self.get_viewport_loc())

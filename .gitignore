@@ -1,8 +1,11 @@
 # Custom ignores
 egg_info/
 testviewer_base.py
-manual_raw.py
 todo.txt
+*.png
+KeyboardEventCodeToKey.csv
+WriteManualToPDF.py
+
 ## Standard python ignores
 ## from https://github.com/github/gitignore/blob/master/Python.gitignore
 

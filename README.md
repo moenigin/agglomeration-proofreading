@@ -70,7 +70,7 @@ python run_proofreading.py -h
 
 ATTENTION: On Windows10 Ctrl-C will not work to exit the program because the tool uses threading.Event. For more information see [here](https://bugs.python.org/issue35935).  
 
-for usage instructions see [instructions](/instructions.md)
+for usage instructions see [manual](manuals)
 
 ## Authentication
 The tool requires users to be registered with Viewer role to a Google cloud project that stores the segmentation data. Additional access to the BrainMaps API requires a service account file with Editor role. 

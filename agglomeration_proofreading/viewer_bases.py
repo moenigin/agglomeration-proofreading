@@ -1,8 +1,10 @@
 import neuroglancer
 import os
 from copy import deepcopy
+from configparser import ConfigParser
 from selenium import webdriver
 from threading import Thread, Event
+
 
 
 class _ViewerBase:
@@ -100,8 +102,21 @@ class _ViewerBase:
         self.viewer.set_state(s)
 
     def _set_keybindings(self):
-        """Binds key board events to call back functions"""
+        """dummy to define key board events to call back functions in children"""
         pass
+
+    def _bind_pairs(self, ini_file=None):
+        """key bindings parsed from ini file"""
+        if ini_file is None:
+            print('no valid keybinding configuration file was specified. '
+                  'Please restart and provide a valid keybinding config')
+            return
+        keybindings = ConfigParser()
+        keybindings.read(ini_file)
+        with self.viewer.config_state.txn() as s:
+            for str_ in keybindings['KEYBINDINGS']:
+                key = keybindings['KEYBINDINGS'][str_]
+                s.input_event_bindings.viewer[key] = str_
 
     # BROWSER
     def _run_browser(self):
@@ -222,6 +237,7 @@ class _ViewerBase2Col(_ViewerBase):
                             data_src:project:dataset:volume_name
             layers (dict) : dict with layer names as keys and layer ids as values
         """
+
         self.layer_names = ['raw'] + list(layers.keys())
         self.seg_vol1 = [self.layer_names[1]]
         self._first_layer = True
@@ -293,13 +309,16 @@ class _ViewerBase2Col(_ViewerBase):
         self.viewer.set_state(s)
 
     def _set_keybindings(self):
-        """Binds key board events to call back functions"""
-        super()._set_keybindings()
+        """Binds strings to call back functions"""
         self.viewer.actions.add('toggle_layout',
                                 lambda s: self._toggle_layout())
 
-        with self.viewer.config_state.txn() as s:
-            s.input_event_bindings.data_view['keyw'] = 'toggle_layout'
+        _DEFAULT_DIR = os.path.dirname(os.path.abspath(__file__))
+        fn = 'KEYBINDINGS_viewerbase2col.ini'
+        config_file = os.path.join(_DEFAULT_DIR, fn)
+        if not os.path.exists(config_file):
+            raise FileNotFoundError
+        self._bind_pairs(config_file)
 
 
 class Annotations:
