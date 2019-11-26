@@ -173,7 +173,7 @@ class NeuronProofreading(_ViewerBase2Col):
         self.graph_tools = graph_tool
         self.var_names = [
             'edges_to_set', 'edges_to_delete', 'action_history',
-            'branch_point', 'segmentation_merger_loc', 'misalignment_locations'
+            'branch_point', 'misalignment_locations'
         ]
         for name in self.var_names:
             setattr(self, name, CustomList([]))
