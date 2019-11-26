@@ -4,7 +4,7 @@ call %root%\Scripts\activate.bat %root%
 
 call conda activate apr
 
-cd C:\Users\moennila\testpck\agglomeration-proofreading
+REM cd path to agglomeration-proofreading tool
 
 python run_proofreading.py -dir_path C:\Data\EM\NeuronReconstruction
 

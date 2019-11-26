@@ -30,6 +30,11 @@ def run_proofreading(args):
               "<path_to_directory>")
         return
 
+    if not os.path.exists(args.service_account):
+        print('Please enter valid path to service account file via the command '
+              'line or to the proofreading.ini')
+        raise FileNotFoundError
+
     API_fcn = EquivalenceRequests(volume_id=args.base_volume,
                                   change_stack_id=args.change_stack_id,
                                   service_account_secrets=args.service_account)
