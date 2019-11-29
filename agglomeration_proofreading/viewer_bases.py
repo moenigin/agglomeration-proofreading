@@ -6,7 +6,6 @@ from selenium import webdriver
 from threading import Thread, Event
 
 
-
 class _ViewerBase:
     """Base class for neuroglancer viewer
 
@@ -96,6 +95,7 @@ class _ViewerBase:
             name = next(iter(layers.values()))
             s.layers[''] = neuroglancer.AnnotationLayer(
                 linked_segmentation_layer=name)
+        s.concurrent_downloads = 256
         s.layout = 'xy-3d'
         s.perspectiveZoom = 54.59815003314426
         s.showSlices = False

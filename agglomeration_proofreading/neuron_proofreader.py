@@ -6,7 +6,7 @@ import numpy as np
 
 from copy import deepcopy
 from datetime import datetime
-from threading import Lock
+from threading import Lock, Thread
 
 from .viewer_bases import _ViewerBase2Col
 from .neuron_graph import isolate_set, LocalGraph
@@ -215,7 +215,7 @@ class NeuronProofreading(_ViewerBase2Col):
         self.viewer.actions.add('set_branch_point',
                                 lambda s: self._store_branch_loc())
         self.viewer.actions.add('remove_branchpoint',
-                                lambda s: self.remove_branch_loc())
+                                lambda s: self._remove_branch_loc())
         self.viewer.actions.add('jump_to_last_branchpoint',
                                 lambda s: self._jump_to_branch_loc())
         self.viewer.actions.add('store_merger_loc',
@@ -243,7 +243,7 @@ class NeuronProofreading(_ViewerBase2Col):
                                 lambda s: self._upd_viewer_segments(
                                     self.base_layer, []))
         self.viewer.actions.add('delete_closest_annotation',
-                                self.delete_closest_annotation)
+                                self._delete_closest_annotation)
         self.viewer.actions.add('exit_revision', lambda s: self.exit())
 
         _DEFAULT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -478,7 +478,7 @@ class NeuronProofreading(_ViewerBase2Col):
         if coord not in self.branch_point:
             self.branch_point.append([coord, False])
 
-    def remove_branch_loc(self):
+    def _remove_branch_loc(self):
         """Flags last branch point location as visited and annotates it with
         an ellipsoid."""
         if any(self.branch_point):
@@ -501,7 +501,7 @@ class NeuronProofreading(_ViewerBase2Col):
             msg = 'no branch point found'
             self.upd_msg(msg)
 
-    def delete_closest_annotation(self, action_state):
+    def _delete_closest_annotation(self, action_state):
         s = deepcopy(self.viewer.state)
         annotations = s.layers[''].annotations
         id_loc_map = list()
@@ -566,13 +566,8 @@ class NeuronProofreading(_ViewerBase2Col):
                                       ])
             self.edges_to_set.append([self.set_edge_loc, self.set_edge_ids])
 
-            self._add_edge_to_neuron()
-
-            msg = 'an edge was set between ' + str(self.set_edge_ids[0]) + \
-                  ' and ' + str(self.set_edge_ids[1])
-            self.upd_msg(msg)
-            self.set_edge_ids = None
-            self.set_edge_loc = None
+            # run lengthy add_segment_request on a separate thread
+            Thread(target=self._add_edge_to_neuron, daemon=True).start()
 
     def _add_edge_to_neuron(self):
         """Adds an edge between segments in the temporary list set_edge_ids
@@ -594,6 +589,12 @@ class NeuronProofreading(_ViewerBase2Col):
                 else:
                     self.graph.add_edge(edges)
         self.graph.add_edge(self.set_edge_ids)
+
+        msg = 'an edge was set between ' + str(self.set_edge_ids[0]) + \
+              ' and ' + str(self.set_edge_ids[1])
+        self.upd_msg(msg)
+        self.set_edge_ids = None
+        self.set_edge_loc = None
         self._upd_viewer()
 
     # SPLIT FALSE MERGER
@@ -645,6 +646,7 @@ class NeuronProofreading(_ViewerBase2Col):
             self.del_edge_ids.append(segment)
             self.action_history.append({'del': deepcopy(self.graph.graph)})
             self.graph.del_edge(self.del_edge_ids)
+            self.del_edge_ids = []
             self._upd_viewer(clear_viewer=True)
             msg = 'Check if the false merger has been successfully split. If ' \
                   'so, move the cursor to the segment that is supposed to be ' \
@@ -673,7 +675,6 @@ class NeuronProofreading(_ViewerBase2Col):
         cc_id = next(idx for idx, members in self.graph.cc.items()
                      if sv_id in members)
         self.graph.del_node(self.graph.cc[cc_id])
-        self.del_edge_ids = []
         self._upd_viewer(clear_viewer=True)
         self.upd_msg('Done!')
 

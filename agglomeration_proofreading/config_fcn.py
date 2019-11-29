@@ -3,14 +3,14 @@ from configparser import ConfigParser
 
 _DEFAULT_KEYS = ['dir_path', 'service_account', 'data_src', 'raw_data',
                  'base_volume', 'change_stack_id', 'save_int', 'remove_token']
-_DEFAULT_VALS = [r'',
-                r'\\argon\moennila\BrainmapsAPI\fmi-aglomeration-proofreading-466fc0396c6a.json',
-                'brainmaps://',
-                '487208920048:adultob:full',
-                '487208920048:adultob:seg_v2_9nm_484558417fb_18nm_fb_107004781_otfa',
-                'rsg18-9_minover_cbs_glia_nila_20190409',
-                '300',
-                'True']
+_DEFAULT_VALS = ['',
+                 '',
+                 'brainmaps://',
+                 '487208920048:adultob:full',
+                 '487208920048:adultob:seg_v2_9nm_484558417fb_18nm_fb_107004781_otfa',
+                 'rsg18-9_minover_cbs_glia_nila_20190409',
+                 '300',
+                 'True']
 
 _DEFAULT_DIR = dirname(dirname(abspath(__file__)))
 _DEFAULT_FN = 'proofreading.ini'
