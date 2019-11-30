@@ -66,17 +66,15 @@ class NeuronProofreading(_ViewerBase2Col):
     4. branch points:
     - to set a branch point move the viewport location to the merge site (e.g.
         right click) and press "y"
-    - to jump to the last unfinished branch location press "`"
+    - to jump to the last unfinished branch location press "7"
     - to tag a branch point as visited press "ctrl + r". It will be annotated
-        with an ellipsoid and not be revisited when pressing "`"
+        with an ellipsoid and not be revisited when pressing "7"
+    - to remove a branch point annotation by hovering the cursor over the
+    ellipsoid and press '0'
 
     5. storing segmentation merger locations:
     - move the viewport center to the merge site (e.g. right click) and press
         "m"
-
-    6. storing misalignment locations:
-    - move the viewport center to the misaligned site (e.g. right click) and
-        press "p"
 
     Helpful functions, press:
     - "ctrl + a" while hovering over a target segment will add the segment and
@@ -357,7 +355,7 @@ class NeuronProofreading(_ViewerBase2Col):
         self.viewer.set_state(s)
 
     def _add_sv_to_neuron(self, action_state):
-        """Adds segments to the neuron's graph and triggers a viewer update.
+        """Adds segments to the neuron's graph.
 
         Segment id at the current cursor location in the viewer is retrieved.
         The agglomerated graph of this segment is retrieved and added to the
@@ -367,16 +365,14 @@ class NeuronProofreading(_ViewerBase2Col):
             action_state: neuroglancer.viewer_config_state.ActionState
         """
         sv = self._get_sv_id(action_state)
+        msg = 'retrieving agglomeration information  for segment ' + str(sv)
+        self.upd_msg(msg)
         if type(sv) == int:
             self.action_history.append(
                 {'add_segment': deepcopy(self.graph.graph)})
-            edges = self.graph_tools.get_graph(sv)
-            if type(edges[0]
-                    ) == int:  # segment has no partner in agglomeration
-                self.graph.add_node(edges[0])
-            else:
-                self.graph.add_edge(edges)
-            self._upd_viewer()
+
+            Thread(target=self._add_sv_to_graph, args=(sv, True),
+                   daemon=True).start()
 
     def _del_sv_from_neuron(self, action_state):
         """Deletes segments to the neuron's graph and triggers a viewer update.
@@ -557,7 +553,7 @@ class NeuronProofreading(_ViewerBase2Col):
             return
         else:
             self.upd_msg(
-                'retrieving second segment id for edge setting...')  # never displays this
+                'retrieving second segment id for edge setting...')
             self.action_history.append({'set': deepcopy(self.graph.graph)})
             # allows updating the location for an edge that is already present
             # in the list of edges to be set
@@ -566,8 +562,7 @@ class NeuronProofreading(_ViewerBase2Col):
                                       ])
             self.edges_to_set.append([self.set_edge_loc, self.set_edge_ids])
 
-            # run lengthy add_segment_request on a separate thread
-            Thread(target=self._add_edge_to_neuron, daemon=True).start()
+            self._add_edge_to_neuron()
 
     def _add_edge_to_neuron(self):
         """Adds an edge between segments in the temporary list set_edge_ids
@@ -582,20 +577,46 @@ class NeuronProofreading(_ViewerBase2Col):
         ]
         if novel_svs:
             for node in novel_svs:
-                edges = self.graph_tools.get_graph(node)
-                if type(edges[0]
-                        ) == int:  # segment has no partner in agglomeration
-                    self.graph.add_node(edges[0])
-                else:
-                    self.graph.add_edge(edges)
+                Thread(target=self._add_sv_to_graph, args=(node,),
+                       daemon=True).start()
         self.graph.add_edge(self.set_edge_ids)
 
+        # this will only display when the second sv in set_edge_ids is already
+        # in the neuron graph, otherwise the message in _add_sv_to_graph will
+        # overwrite it
         msg = 'an edge was set between ' + str(self.set_edge_ids[0]) + \
               ' and ' + str(self.set_edge_ids[1])
         self.upd_msg(msg)
         self.set_edge_ids = None
         self.set_edge_loc = None
         self._upd_viewer()
+
+    def _add_sv_to_graph(self, sv, update_viewer=False):
+        """returns the agglomeration graph of sv and adds it to the neuron,
+        displays msg upon finishing
+
+        The lengthy API request should be run on a separate thread to free main
+        thread
+
+        Args:
+            sv (int) : segment id
+            update_viewer (bool) : flag that determines whether to update the
+                                viewer. This is needed when a single segment is
+                                added to the graph but not when this function is
+                                called from set edges
+        """
+        edges = self.graph_tools.get_graph(sv)
+        if type(edges[0]
+                ) == int:  # segment has no partner in agglomeration
+            self.graph.add_node(edges[0])
+        else:
+            self.graph.add_edge(edges)
+
+        if update_viewer:
+            self._upd_viewer()
+
+        msg = 'segment ' + str(sv) + ' was added to the neuron graph'
+        self.upd_msg(msg)
 
     # SPLIT FALSE MERGER
     def _show_connected_partners(self, action_state):
