@@ -271,16 +271,22 @@ class NeuronProofreading(_ViewerBase2Col):
             return
 
         with self.viewer.txn() as s:
+            # base volume viewer: simply query presence of segment id that and
+            # toggle display accordingly
             segments_base = s.layers[self.base_layer].segments
             if segment_id in segments_base:
                 segments_base.remove(segment_id)
             else:
                 segments_base.add(segment_id)
 
+            # agglomeration viewer: retrieve segments and equivalences set
             eqv_set = s.layers[self.aggl_layer].equivalences.sets()
             viewer_seg = s.layers[self.aggl_layer].segments
             segments_aggl = flat_list(eqv_set)
 
+            # Remove the agglomerated parent of segment_id from viewer and
+            # equivalence dictionary if it is already in the viewer and/or
+            # equivalence dictionary
             if (any(viewer_seg) and segment_id in segments_aggl) \
                     or segment_id in viewer_seg:
                 if segment_id in segments_aggl:
@@ -292,6 +298,8 @@ class NeuronProofreading(_ViewerBase2Col):
                 s.layers[self.aggl_layer].segments.remove(agglo_id)
                 s.layers[self.aggl_layer].equivalences.delete_set(segment_id)
             else:
+                # otherwise get the graph oif the neuron and at to both viewer
+                # segment list and equivalence dictionary
                 agglo_id = self.graph_tools.get_agglo_id(segment_id)
                 members = self.graph_tools.get_members(agglo_id)
                 s.layers[self.aggl_layer].segments.add(agglo_id)
