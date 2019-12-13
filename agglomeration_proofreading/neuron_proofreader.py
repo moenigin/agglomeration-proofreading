@@ -207,9 +207,12 @@ class NeuronProofreading(_ViewerBase2Col):
         """Binds key board events to call back functions"""
         super()._set_keybindings()
         self.viewer.actions.add('select', self._handle_select)
+        self.viewer.actions.add('select_base', self._handle_select_base)
         self.viewer.actions.add('get_first_sv_to_merge',
                                 self._first_svid_for_merging)
         self.viewer.actions.add('set_equivalence', self._merge_segments)
+        self.viewer.actions.add('_custom_toggle_xy3d',
+                                lambda s: self._custom_toggle_layout())
         self.viewer.actions.add('set_branch_point',
                                 lambda s: self._store_branch_loc())
         self.viewer.actions.add('remove_branchpoint',
@@ -253,8 +256,9 @@ class NeuronProofreading(_ViewerBase2Col):
 
     # VIEWER INTERACTION
     def _handle_select(self, action_state):
-        """Overrides the neuroglancer response to a double click to maintain its
-        default functionality: select or unselect a segment from display.
+        """Overrides the neuroglancer response to a double click maintaining its
+        default functionality vastly: select or unselect a segment in the
+        agglomerated volume from display.
 
         To select or unselect a segment of the agglomerated volume when
         displaying the agglomeration through the neuroglancer dictionary the
@@ -271,14 +275,6 @@ class NeuronProofreading(_ViewerBase2Col):
             return
 
         with self.viewer.txn() as s:
-            # base volume viewer: simply query presence of segment id that and
-            # toggle display accordingly
-            segments_base = s.layers[self.base_layer].segments
-            if segment_id in segments_base:
-                segments_base.remove(segment_id)
-            else:
-                segments_base.add(segment_id)
-
             # agglomeration viewer: retrieve segments and equivalences set
             eqv_set = s.layers[self.aggl_layer].equivalences.sets()
             viewer_seg = s.layers[self.aggl_layer].segments
@@ -305,6 +301,43 @@ class NeuronProofreading(_ViewerBase2Col):
                 s.layers[self.aggl_layer].segments.add(agglo_id)
                 s.layers[self.aggl_layer].equivalences.union(*members)
 
+    def _handle_select_base(self, action_state):
+        """Overrides the neuroglancer response to a double click maintaining its
+        default functionality vastly: select or unselect a segment from display.
+
+        Args:
+            action_state : neuroglancer.viewer_config_state.ActionState
+        """
+        segment_id = self._get_sv_id(action_state)
+        if segment_id is None or segment_id == 0:
+            return
+
+        with self.viewer.txn() as s:
+            segments_base = s.layers[self.base_layer].segments
+            if segment_id in segments_base:
+                segments_base.remove(segment_id)
+            else:
+                segments_base.add(segment_id)
+
+    def _custom_toggle_layout(self):
+        """Overrides the neuroglancer toggle_layout default:
+
+        Pressing space will only toggle between 3d and xy-3d layout since
+        orthogonal viewparts are not neededfor the proofreading
+        """
+        s = deepcopy(self.viewer.state)
+        if s.layout.type == 'xy-3d':
+            s.layout.type = '3d'
+        elif s.layout.type == '3d':
+            s.layout.type = 'xy-3d'
+        elif s.layout.type == 'row':
+            msg = 'cannot toggle between xy-3D and 3D fullscreen mode when the ' \
+                  'viewer is in column layout'
+            self.upd_msg(msg)
+        else:
+            print('unexpected layout', s.layout)
+        self.viewer.set_state(s)
+
     def _get_sv_id(self, action_state):
         """returns id of the segment at cursor position from a neuroglancer
         action state
@@ -316,7 +349,11 @@ class NeuronProofreading(_ViewerBase2Col):
             segment id : int or None
         """
         try:
-            selected_object = action_state.selected_values[self.base_layer]
+            # get first active segmentation layer
+            layer = next(layer.name for layer in
+                         action_state.viewer_state.layers
+                         if layer.type == "segmentation")
+            selected_object = action_state.selected_values[layer]
         except KeyError:
             msg = 'Cursor misplaced - try again'
             self.upd_msg(msg)

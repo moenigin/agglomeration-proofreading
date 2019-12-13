@@ -1,5 +1,6 @@
 import neuroglancer
 import os
+from agglomeration_proofreading.ap_utils import return_other
 from copy import deepcopy
 from configparser import ConfigParser
 from selenium import webdriver
@@ -95,7 +96,6 @@ class _ViewerBase:
             name = next(iter(layers.values()))
             s.layers[''] = neuroglancer.AnnotationLayer(
                 linked_segmentation_layer=name)
-        s.concurrent_downloads = 256
         s.layout = 'xy-3d'
         s.perspectiveZoom = 54.59815003314426
         s.showSlices = False
@@ -237,10 +237,11 @@ class _ViewerBase2Col(_ViewerBase):
                             data_src:project:dataset:volume_name
             layers (dict) : dict with layer names as keys and layer ids as values
         """
-
+        if len(layers) != 2:
+            raise ValueError('Layer input must be a dictionary with two '
+                             'entries of "layer": <path to data>')
         self.layer_names = ['raw'] + list(layers.keys())
-        self.seg_vol1 = [self.layer_names[1]]
-        self._first_layer = True
+        self.seg_vols = [[self.layer_names[1]], [self.layer_names[2]]]
         super().__init__(raw_data, layers, **kwargs)
 
     def _init_viewer(self, raw_data, layers={}):
@@ -259,59 +260,47 @@ class _ViewerBase2Col(_ViewerBase):
              starting position : [x,y,z]
         """
         super()._init_viewer(raw_data, layers)
-        # create lists of layer names for the row_layout LayerGroupViewer
-        # settings
+        # update lists of layer names for the row_layout LayerGroupViewer
+        # settings if an annotation layer is added
         if self.annotation_flag:
             self.layer_names += ['']
-            self.seg_vol1 += ['']
+            self.seg_vols[0] += ['']
 
-        self._toggle_layout(n_rows=3)
+        self._toggle_layout(self.layer_names[1])
 
-    def _toggle_layout(self, n_rows=None):
-        """toggles viewer layout between 2 column (xy + agglomerated volume
-        layer 3D) and 3 column layout (xy + agglomerated volume layer 3D + base
-        volume layer)
-
-        Args:
-            n_rows (int) : number of rows of the viewer
+    def _toggle_layout(self, layer_to_show):
+        """switches between 2 column and one column layout of the viewer
         """
-        s = deepcopy(self.viewer.state)
-        if not n_rows:
-            if len(s.layout) == 3:
-                n_rows = 2
-            elif len(s.layout) == 2 and not self._first_layer:
-                n_rows = 2
-            else:
-                n_rows = 3
-
-        if n_rows == 3:
-            s.layout = neuroglancer.row_layout([
+        layer_to_hide = return_other(self.layer_names[1:], layer_to_show)
+        viewer_state = deepcopy(self.viewer.state)
+        if type(viewer_state.layout) == neuroglancer.viewer_state.DataPanelLayout:
+            viewer_state.layers[layer_to_show].visible = True
+            viewer_state.layers[layer_to_hide].visible = True
+            viewer_state.layout = neuroglancer.row_layout([
                 neuroglancer.LayerGroupViewer(layout='xy',
                                               layers=self.layer_names),
-                neuroglancer.LayerGroupViewer(
-                    layout='3d', layers=self.seg_vol1),
                 neuroglancer.LayerGroupViewer(layout='3d',
-                                              layers=[self.layer_names[2]]),
+                                              layers=self.seg_vols[0]),
+                neuroglancer.LayerGroupViewer(layout='3d',
+                                              layers=self.seg_vols[1]),
             ])
-        else:
-            if self._first_layer:
-                layer = neuroglancer.LayerGroupViewer(layout='3d',
-                                                      layers=self.seg_vol1)
-                self._first_layer = False
-            else:
-                layer = neuroglancer.LayerGroupViewer(layout='3d',
-                                                      layers=[
-                                                          self.layer_names[2]])
-                self._first_layer = True
-            s.layout = neuroglancer.row_layout(
-                [neuroglancer.LayerGroupViewer(layout='xy',
-                                               layers=self.layer_names), layer])
-        self.viewer.set_state(s)
+
+        elif type(viewer_state.layout) == neuroglancer.viewer_state.StackLayout:
+            viewer_state.layers[layer_to_hide].visible = False
+            viewer_state.layout = neuroglancer.row_layout([
+                neuroglancer.LayerGroupViewer(layout='xy-3d',
+                                              layers=self.layer_names)])
+
+        self.viewer.set_state(viewer_state)
 
     def _set_keybindings(self):
         """Binds strings to call back functions"""
-        self.viewer.actions.add('toggle_layout',
-                                lambda s: self._toggle_layout())
+        self.viewer.actions.add('toggle_segmentation_layer1',
+                                lambda s: self._toggle_layout(
+                                    self.layer_names[1]))
+        self.viewer.actions.add('toggle_segmentation_layer2',
+                                lambda s: self._toggle_layout(
+                                    self.layer_names[2]))
 
         _DEFAULT_DIR = os.path.dirname(os.path.abspath(__file__))
         fn = 'KEYBINDINGS_viewerbase2col.ini'

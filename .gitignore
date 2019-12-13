@@ -5,6 +5,7 @@ todo.txt
 *.png
 KeyboardEventCodeToKey.csv
 WriteManualToPDF.py
+NG_DEFAULT_KEYBINDINGS.ini
 
 ## Standard python ignores
 ## from https://github.com/github/gitignore/blob/master/Python.gitignore
