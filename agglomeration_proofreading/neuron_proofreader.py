@@ -12,6 +12,8 @@ from .viewer_bases import _ViewerBase2Col
 from .neuron_graph import isolate_set, LocalGraph
 from .ap_utils import CustomList, flat_list
 
+from timeit import default_timer as timer
+from datetime import timedelta
 
 class NeuronProofreading(_ViewerBase2Col):
     """Class for proofreading individual neurons in an agglomerated segmentation
@@ -294,12 +296,51 @@ class NeuronProofreading(_ViewerBase2Col):
                 s.layers[self.aggl_layer].segments.remove(agglo_id)
                 s.layers[self.aggl_layer].equivalences.delete_set(segment_id)
             else:
-                # otherwise get the graph oif the neuron and at to both viewer
-                # segment list and equivalence dictionary
+                # otherwise get the graph of the neuron
                 agglo_id = self.graph_tools.get_agglo_id(segment_id)
                 members = self.graph_tools.get_members(agglo_id)
+                # if edges to delete have already been identified, check whether
+                # segment_id is part of merged segment and make sure that the
+                # display reflects already performed correction locally
+                if any(flat_list(self.edges_to_delete)):
+                    edges_to_delete = [edge for edge in self.edges_to_delete
+                                       if edge[0] in members]
+                    if any(edges_to_delete):
+                        members, agglo_id = self._update_merger_locally(
+                            segment_id, members, edges_to_delete)
+
+                # add to both viewer segment list and equivalence dictionary
                 s.layers[self.aggl_layer].segments.add(agglo_id)
                 s.layers[self.aggl_layer].equivalences.union(*members)
+
+    def _update_merger_locally(self, segment_id, members, edges_to_delete):
+        """Updates display of merged segment locally
+
+        When selecting a segment that has already been split off locally but
+        not in the remote agglomeration graph this ensures the updated display.
+
+        Args:
+            segment_id (int) : id of the selected segments
+            members (list) : list of segment that belong to the agglomerated
+                            supervoxel
+            edges_to_delete(list): list of edges that were deleted locally
+
+        Returns:
+            members(list) : list of segment ids of that belong to the same
+                            connected component as segment_id considering the
+                            local correction
+            agglo_id(int): updated id of the agglomerated parent
+        """
+        edge_list = self.graph_tools.get_edges(members)
+        temp_graph = LocalGraph()
+        temp_graph.add_edge(edge_list)
+        temp_graph.del_edge(edges_to_delete)
+        for cc_members in temp_graph.cc.values():
+            if segment_id in cc_members:
+                members = cc_members
+                break
+        agglo_id = min(members)
+        return members, agglo_id
 
     def _handle_select_base(self, action_state):
         """Overrides the neuroglancer response to a double click maintaining its
@@ -712,6 +753,7 @@ class NeuronProofreading(_ViewerBase2Col):
             self.del_edge_ids.append(segment)
             self.action_history.append({'del': deepcopy(self.graph.graph)})
             self.graph.del_edge(self.del_edge_ids)
+            self.edges_to_delete.append(self.del_edge_ids)
             self.del_edge_ids = []
             self._upd_viewer(clear_viewer=True)
             msg = 'Check if the false merger has been successfully split. If ' \
@@ -719,7 +761,6 @@ class NeuronProofreading(_ViewerBase2Col):
                   'removed from the neuron and press keyk. Otherwise search ' \
                   'for another supervoxel pair causing the false merger.'
             self.upd_msg(msg)
-            self.edges_to_delete.append(self.del_edge_ids)
 
     def _confirm_merge_split(self, action_state):
         """Cleans up neuron's graph after a false agglomeration merger has been
