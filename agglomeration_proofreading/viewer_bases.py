@@ -116,7 +116,17 @@ class _ViewerBase:
         with self.viewer.config_state.txn() as s:
             for str_ in keybindings['KEYBINDINGS']:
                 key = keybindings['KEYBINDINGS'][str_]
-                s.input_event_bindings.viewer[key] = str_
+                binding_group = keybindings['BINDING_GROUP'][str_]
+                if binding_group == 'viewer':
+                    s.input_event_bindings.viewer[key] = str_
+                elif binding_group == 'data_view':
+                    s.input_event_bindings.data_view[key] = str_
+                elif binding_group == 'perspective_view ':
+                    s.input_event_bindings.perspective_view[key] = str_
+                elif binding_group == 'slice_view':
+                    s.input_event_bindings.slice_view[key] = str_
+                else:
+                    raise ValueError('Binding group not found')
 
     # BROWSER
     def _run_browser(self):

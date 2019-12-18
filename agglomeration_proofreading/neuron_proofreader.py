@@ -211,7 +211,7 @@ class NeuronProofreading(_ViewerBase2Col):
         self.viewer.actions.add('get_first_sv_to_merge',
                                 self._get_sv1_for_merging)
         self.viewer.actions.add('set_equivalence', self._get_sv2_for_merging)
-        self.viewer.actions.add('_custom_toggle_xy3d',
+        self.viewer.actions.add('custom_toggle_xy3d',
                                 lambda s: self._custom_toggle_layout())
         self.viewer.actions.add('set_branch_point',
                                 lambda s: self._store_branch_loc())
@@ -651,6 +651,7 @@ class NeuronProofreading(_ViewerBase2Col):
          updated and the setting of the edge directed.
         """
         break_condition = [0 in self.set_edge_ids_temp,
+                           None in self.set_edge_ids_temp,
                            self.set_edge_ids_temp[0] == self.set_edge_ids_temp[
                                1]
                            ]
@@ -668,7 +669,8 @@ class NeuronProofreading(_ViewerBase2Col):
                                                         self.set_edge_ids_temp)
                                       ])
             self.edges_to_set.append(
-                            [self.set_edge_loc_temp, self.set_edge_ids_temp])
+                                [self.set_edge_loc_temp, self.set_edge_ids_temp]
+                                    )
 
             self._direct_edge_setting()
 
