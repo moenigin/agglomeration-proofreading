@@ -1,13 +1,13 @@
 import argparse
+import json
 import os
-import pickle
 import re
 
 from brainmaps_api_fcn.equivalence_requests import EquivalenceRequests
 from agglomeration_proofreading.neuron_proofreader import NeuronProofreading
 from agglomeration_proofreading.neuron_graph import GraphTools
 from agglomeration_proofreading.config_fcn import determine_args
-
+from agglomeration_proofreading.ap_utils import keys_to_int
 
 def run_proofreading(args):
     """Sets arguments from parser and starts proofreading tool
@@ -15,12 +15,19 @@ def run_proofreading(args):
     Args:
         args (argparse.ArgumentParser.parse_args())
     """
-    r = re.compile(r'\d{6}_\d{6}\_agglomerationReview.pickle$')
+    pattern = re.compile(r'\d{6}_\d{6}\_agglomerationReview.json')
     try:
-        latest_file = max(filter(r.search, os.listdir(args.dir_path)))
+        latest_file = max(filter(pattern.search, os.listdir(args.dir_path)))
         full_fn = os.path.join(args.dir_path, latest_file)
         with open(full_fn, 'rb') as f:
-            review_data = pickle.load(f)
+            review_data = json.load(f)
+            review_data['neuron_graph'] = keys_to_int(review_data[
+                                                          'neuron_graph'])
+            for dct in review_data['action_history']:
+                key = next(iter(dct.keys()))
+                val = dct[key]
+                dct[key] = keys_to_int(val)
+
     except ValueError:  # thrown by max if no file with pattern found
         review_data = None
     except FileNotFoundError:

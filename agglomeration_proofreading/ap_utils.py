@@ -20,6 +20,10 @@ def int_to_list(sv_id):
         return sv_id
 
 
+def keys_to_int(dct):
+    return {int(k): v for k, v in dct.items()}
+
+
 def convert_coord(coord, orig, targ=[9, 9, 25]):
     """convert coordinates from one resolution to the other"""
     newx = coord[0] * orig[0] / targ[0]

@@ -1,6 +1,6 @@
+import json
 import neuroglancer
 import os
-import pickle
 
 import numpy as np
 
@@ -542,7 +542,7 @@ class NeuronProofreading(_ViewerBase2Col):
         All Customlist attributes are converted to regular lists. The current
         viewport position is saved to allow continuation of revision from there.
         """
-        fn = '{0:%y%m%d}_{0:%H%M%S}_agglomerationReview.pickle'.format(
+        fn = '{0:%y%m%d}_{0:%H%M%S}_agglomerationReview.json'.format(
             datetime.now())
         sv_fn = os.path.join(self.dir_path, fn)
         new_data = dict()
@@ -550,8 +550,9 @@ class NeuronProofreading(_ViewerBase2Col):
             new_data[name] = list(getattr(self, name))
         new_data['last_position'] = self.get_viewport_loc()
         new_data['neuron_graph'] = self.graph.graph
-        with open(sv_fn, 'wb') as f:
-            pickle.dump(new_data, f)
+        new_data['ts'] = datetime.timestamp(datetime.now())
+        with open(sv_fn, 'w') as f:
+            json.dump(new_data, f)
         for name in self.var_names:
             setattr(getattr(self, name), 'unsaved_changes', False)
 
@@ -614,7 +615,9 @@ class NeuronProofreading(_ViewerBase2Col):
             action_state: neuroglancer.viewer_config_state.ActionState
         """
         self.set_edge_ids_temp.append(self._get_sv_id(action_state))
-        self.set_edge_loc_temp.append(action_state.mouse_voxel_coordinates)
+        if action_state.mouse_voxel_coordinates is not None:
+            self.set_edge_loc_temp.append(
+                [int(x) for x in action_state.mouse_voxel_coordinates])
 
     def _get_sv1_for_merging(self, action_state):
         """Retrieves information of the first segment to fix a false split
@@ -666,11 +669,9 @@ class NeuronProofreading(_ViewerBase2Col):
             # allow updating the location entry for a pair in edge_to_set
             self.edges_to_set.update([edge for edge in self.edges_to_set
                                       if set(edge[1]) != set(
-                                                        self.set_edge_ids_temp)
-                                      ])
+                                        self.set_edge_ids_temp)])
             self.edges_to_set.append(
-                                [self.set_edge_loc_temp, self.set_edge_ids_temp]
-                                    )
+                [self.set_edge_loc_temp, self.set_edge_ids_temp])
 
             self._direct_edge_setting()
 

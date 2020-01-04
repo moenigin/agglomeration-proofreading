@@ -180,7 +180,7 @@ class _ViewerBase:
 
     def get_viewport_loc(self):
         """retrieves voxel coordinates of the viewport center"""
-        return list(self.viewer.state.voxel_coordinates)
+        return [int(x) for x in self.viewer.state.voxel_coordinates]
 
     def set_viewer_loc(self, coord):
         """Sets the viewport focus to voxel coordinates "coord".
