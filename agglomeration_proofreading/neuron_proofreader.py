@@ -193,6 +193,7 @@ class NeuronProofreading(_ViewerBase2Col):
             s.layers[self.base_layer].selectedAlpha = 0
             s.concurrent_downloads = 256
         self.timer.start_timer(func=self._auto_save)
+        self.toggle_hover_value_display()
 
         # load data
         if data is not None:
@@ -248,6 +249,7 @@ class NeuronProofreading(_ViewerBase2Col):
         self.viewer.actions.add('delete_closest_annotation',
                                 self._delete_closest_annotation)
         self.viewer.actions.add('exit_revision', lambda s: self.exit())
+        self.viewer.actions.add('toggle_hover_values', lambda s: self.toggle_hover_value_display())
 
         _DEFAULT_DIR = os.path.dirname(os.path.abspath(__file__))
         fn = 'KEYBINDINGS_proofreader.ini'
@@ -491,6 +493,10 @@ class NeuronProofreading(_ViewerBase2Col):
             members = self.graph.cc[idx]
             self.graph.del_node(members)
             self._upd_viewer(clear_viewer=True)
+
+    def toggle_hover_value_display(viewer_item):
+        with viewer_item.viewer.config_state.txn() as s:
+            s.showLayerHoverValues = not s.showLayerHoverValues
 
     # DATA HANDLING
     def _load_data(self, data):
