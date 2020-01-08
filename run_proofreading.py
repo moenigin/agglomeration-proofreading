@@ -9,6 +9,7 @@ from agglomeration_proofreading.neuron_graph import GraphTools
 from agglomeration_proofreading.config_fcn import determine_args
 from agglomeration_proofreading.ap_utils import keys_to_int
 
+
 def run_proofreading(args):
     """Sets arguments from parser and starts proofreading tool
 
@@ -42,19 +43,22 @@ def run_proofreading(args):
               'line or to the proofreading.ini')
         raise FileNotFoundError
 
-    API_fcn = EquivalenceRequests(volume_id=args.base_volume,
-                                  change_stack_id=args.change_stack_id,
-                                  service_account_secrets=args.service_account)
-    graph_tool = GraphTools(api_fcn=API_fcn)
+    brainmaps_api_fcn = EquivalenceRequests(volume_id=args.base_volume,
+                                            change_stack_id=args.change_stack_id,
+                                            service_account_secrets=args.service_account)
+
+    graph_tool = GraphTools(api_fcn=brainmaps_api_fcn)
     base_path = args.data_src + args.base_volume
     raw_path = args.data_src + args.raw_data
+
     with NeuronProofreading(dir_path=args.dir_path,
-                              data=review_data,
-                              graph_tool=graph_tool,
-                              base_vol=base_path,
-                              raw_data=raw_path,
-                              timer_interval=args.save_int,
-                              remove_token=args.remove_token) as aobr:
+                            data=review_data,
+                            graph_tool=graph_tool,
+                            base_vol=base_path,
+                            raw_data=raw_path,
+                            dimensions=args.dimensions,
+                            timer_interval=args.save_int,
+                            remove_token=args.remove_token) as aobr:
         aobr.exit_event.wait()
 
 
@@ -100,6 +104,18 @@ if __name__ == '__main__':
                     help='flag that decides whether to delete the token created'
                          ' by authenticating to neuroglancer upon exit of the '
                          'program')
+
+    ap.add_argument('-names',
+                    type=str,
+                    help='names of the stack coordinates as comma separated '
+                         'items, e.g. x,y,z')
+
+    ap.add_argument('-scales',
+                    help='scale of the stack coordinates entered as comma '
+                         'separated items, e.g. 9,9,25')
+
+    ap.add_argument('-units', type=str,
+                    help='metric unit of the coordinate scales given')
 
     ap.set_defaults(func=run_proofreading)
 

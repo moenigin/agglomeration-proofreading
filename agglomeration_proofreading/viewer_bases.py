@@ -30,6 +30,7 @@ class _ViewerBase:
     def __init__(self,
                  raw_data,
                  layers={},
+                 dimensions=None,
                  annotation=False,
                  timer_interval=None,
                  remove_token=True,
@@ -44,15 +45,33 @@ class _ViewerBase:
             raw_data (str) : full id of the raw data layer in form of
                         "src:projectId:datasetId:volumeId"
             layers (dict) : dict with layer names as keys and layer ids as values
+            dimenstions(dict, list
             annotation(Boolean) : determines whether to build a viewer with
                                 annotation layer, optional
             timer_interval (int) : interval betweenn timer execution, if set
                                 adds a timer to the viewer, optional
+            remove_token(Boolean) : determines whether to remove personalised
+                                    token created during the neuroglancer
+                                    authentication procedure
         """
+        if dimensions is None:
+            self.dimensions = neuroglancer.CoordinateSpace(
+                names=['x', 'y', 'z'],
+                units='nm',
+                scales=[9, 9, 25],
+            )
+        else:
+            self.dimensions = neuroglancer.CoordinateSpace(
+                names=dimensions['names'],
+                units=dimensions['units'],
+                scales=dimensions['scales']
+            )
+
         self.viewer = neuroglancer.Viewer()
         if annotation:
             self.annotation_flag = True
             self.annotation = Annotations(viewer=self.viewer)
+            # self.get_dimensions_timer = Timer(.5)
         else:
             self.annotation_flag = False
         if timer_interval is not None:
@@ -94,10 +113,10 @@ class _ViewerBase:
             s.layers[name] = neuroglancer.SegmentationLayer(source=src)
         if self.annotation_flag:
             name = next(iter(layers.values()))
-            s.layers[''] = neuroglancer.AnnotationLayer(
+            s.layers[''] = neuroglancer.LocalAnnotationLayer(
+                dimensions=self.dimensions,
                 linked_segmentation_layer=name)
         s.layout = 'xy-3d'
-        s.perspectiveZoom = 54.59815003314426
         s.showSlices = False
         self.viewer.set_state(s)
 
@@ -283,7 +302,8 @@ class _ViewerBase2Col(_ViewerBase):
         """
         layer_to_hide = return_other(self.layer_names[1:], layer_to_show)
         viewer_state = deepcopy(self.viewer.state)
-        if type(viewer_state.layout) == neuroglancer.viewer_state.DataPanelLayout:
+        if type(
+                viewer_state.layout) == neuroglancer.viewer_state.DataPanelLayout:
             viewer_state.layers[layer_to_show].visible = True
             viewer_state.layers[layer_to_hide].visible = True
             viewer_state.layout = neuroglancer.row_layout([
@@ -389,7 +409,7 @@ class Timer:
         _func = function to execute
     """
 
-    def __init__(self, interval, _func=None):
+    def __init__(self, interval):
         """
 
         Args:
@@ -397,14 +417,15 @@ class Timer:
         """
         self.stopTimer = Event()
         self.interval = interval
-        self._func = _func
+        self._func = None
 
-    def start_timer(self, func=None):
+    def start_timer(self, func, *args, **kwargs):
         self._func = func
-        Thread(target=self._timer_fcn, daemon=True).start()
+        Thread(target=self._timer_fcn, args=args, kwargs=kwargs,
+               daemon=True).start()
 
-    def _timer_fcn(self):
+    def _timer_fcn(self, *args, **kwargs):
         """timer function to trigger function at interval sec
         """
         while not self.stopTimer.wait(self.interval):
-            self._func()
+            self._func(*args, **kwargs)

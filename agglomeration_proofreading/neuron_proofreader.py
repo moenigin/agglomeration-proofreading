@@ -137,6 +137,7 @@ class NeuronProofreading(_ViewerBase2Col):
                  graph_tool,
                  base_vol,
                  raw_data,
+                 dimensions,
                  data=None,
                  timer_interval=300,
                  remove_token=True):
@@ -182,6 +183,7 @@ class NeuronProofreading(_ViewerBase2Col):
 
         super(NeuronProofreading, self).__init__(raw_data=raw_data,
                                                  layers=layers,
+                                                 dimensions=dimensions,
                                                  annotation=True,
                                                  timer_interval=timer_interval,
                                                  remove_token=remove_token)
