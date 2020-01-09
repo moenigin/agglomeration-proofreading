@@ -137,7 +137,6 @@ class NeuronProofreading(_ViewerBase2Col):
                  graph_tool,
                  base_vol,
                  raw_data,
-                 dimensions,
                  data=None,
                  timer_interval=300,
                  remove_token=True):
@@ -181,9 +180,14 @@ class NeuronProofreading(_ViewerBase2Col):
         self.aggl_layer = 'agglo'
         layers = {self.aggl_layer: base_vol, self.base_layer: base_vol}
 
+        # load data
+        self.load_data_msg = ''
+        if data is not None:
+            self._load_data(data)
+        self.action_history.max_length = 10
+
         super(NeuronProofreading, self).__init__(raw_data=raw_data,
                                                  layers=layers,
-                                                 dimensions=dimensions,
                                                  annotation=True,
                                                  timer_interval=timer_interval,
                                                  remove_token=remove_token)
@@ -194,6 +198,9 @@ class NeuronProofreading(_ViewerBase2Col):
             s.concurrent_downloads = 256
         self.timer.start_timer(func=self._auto_save)
         self.toggle_hover_value_display()
+        self._upd_viewer()
+        self.set_viewer_loc(data['last_position'])
+        self.upd_msg(self.load_data_msg)
 
         # load data
         if data is not None:
@@ -257,6 +264,17 @@ class NeuronProofreading(_ViewerBase2Col):
         if not os.path.exists(config_file):
             raise FileNotFoundError
         self._bind_pairs(config_file)
+
+    def _annotation_layer_cb(self):
+        """Triggers column layout setting and loads annotation from previous
+        revisions"""
+        super()._annotation_layer_cb()
+        annocount = 0
+        if any(self.branch_point):
+            for point in self.branch_point:
+                if point[1]:
+                    annocount += 1
+                    self.annotation._make_ellipsoid('', point[0])
 
     # VIEWER INTERACTION
     def _handle_select(self, action_state):
@@ -517,20 +535,10 @@ class NeuronProofreading(_ViewerBase2Col):
                 setattr(self, name, temp)
             self.graph.graph = data['neuron_graph']
             self.graph.update_cc()
-            self._upd_viewer()
-            annocount = 0
-            if any(self.branch_point):
-                for point in self.branch_point:
-                    if point[1]:
-                        annocount += 1
-                        self.annotation._make_ellipsoid('', point[0])
-            self.annotation.anno_id = annocount
-            self.set_viewer_loc(data['last_position'])
         except:
-            msg = 'Data from previous review could not be loaded. Start review ' \
-                  'from scratch or check latest review file'
-            self.upd_msg(msg)
-            return
+            self.load_data_msg = 'Data from previous review could not be ' \
+                                 'loaded. Start review from scratch or check ' \
+                                 'latest review file.'
 
     def _auto_save(self):
         """Checks whether variables that need to be stored have been modified

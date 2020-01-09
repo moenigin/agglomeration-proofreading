@@ -30,7 +30,6 @@ class _ViewerBase:
     def __init__(self,
                  raw_data,
                  layers={},
-                 dimensions=None,
                  annotation=False,
                  timer_interval=None,
                  remove_token=True,
@@ -45,7 +44,6 @@ class _ViewerBase:
             raw_data (str) : full id of the raw data layer in form of
                         "src:projectId:datasetId:volumeId"
             layers (dict) : dict with layer names as keys and layer ids as values
-            dimenstions(dict, list
             annotation(Boolean) : determines whether to build a viewer with
                                 annotation layer, optional
             timer_interval (int) : interval betweenn timer execution, if set
@@ -54,24 +52,12 @@ class _ViewerBase:
                                     token created during the neuroglancer
                                     authentication procedure
         """
-        if dimensions is None:
-            self.dimensions = neuroglancer.CoordinateSpace(
-                names=['x', 'y', 'z'],
-                units='nm',
-                scales=[9, 9, 25],
-            )
-        else:
-            self.dimensions = neuroglancer.CoordinateSpace(
-                names=dimensions['names'],
-                units=dimensions['units'],
-                scales=dimensions['scales']
-            )
-
+        self.dimensions = None
         self.viewer = neuroglancer.Viewer()
         if annotation:
             self.annotation_flag = True
             self.annotation = Annotations(viewer=self.viewer)
-            # self.get_dimensions_timer = Timer(.5)
+            self.get_dimensions_timer = Timer(.1)
         else:
             self.annotation_flag = False
         if timer_interval is not None:
@@ -113,12 +99,39 @@ class _ViewerBase:
             s.layers[name] = neuroglancer.SegmentationLayer(source=src)
         if self.annotation_flag:
             name = next(iter(layers.values()))
-            s.layers[''] = neuroglancer.LocalAnnotationLayer(
-                dimensions=self.dimensions,
-                linked_segmentation_layer=name)
+            self.get_dimensions_timer.start_timer(self._add_annotation_layer,
+                                                  name)
         s.layout = 'xy-3d'
         s.showSlices = False
         self.viewer.set_state(s)
+
+    def _add_annotation_layer(self, name):
+        """Adds an annotation layer to the viewer.
+
+        In neuroglancer >= 2.0 the annotation layer requires an dimension
+        argument. This CoordinateSpace dictionary is read out from the viewer
+        state once the data has been retrieved from the server and this
+        information has been written to the viewer state.
+        Changes to the viewer that need to be executed after the annotation
+        layer has been added can be handled by self._annotation_layer_cb()
+
+        Args:
+            name(str) : name of the annotation layer.
+        """
+        if any(self.viewer.state.dimensions):
+            s = deepcopy(self.viewer.state)
+            self.dimensions = s.dimensions
+            s.layers[''] = neuroglancer.LocalAnnotationLayer(
+                dimensions=self.dimensions,
+                linked_segmentation_layer=name)
+            self.viewer.set_state(s)
+            self.get_dimensions_timer.stopTimer.set()
+            self._annotation_layer_cb()
+
+    def _annotation_layer_cb(self):
+        """dummy function for code that has to be executed once the annotation
+        layer has been created"""
+        pass
 
     def _set_keybindings(self):
         """dummy to define key board events to call back functions in children"""
@@ -294,7 +307,11 @@ class _ViewerBase2Col(_ViewerBase):
         if self.annotation_flag:
             self.layer_names += ['']
             self.seg_vols[0] += ['']
+        else:
+            self._toggle_layout(self.layer_names[1])
 
+    def _annotation_layer_cb(self):
+        """creates 2 column layout after an annotation layer has been added"""
         self._toggle_layout(self.layer_names[1])
 
     def _toggle_layout(self, layer_to_show):

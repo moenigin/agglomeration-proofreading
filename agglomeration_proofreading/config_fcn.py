@@ -12,16 +12,13 @@ _DEFAULT_VALS = ['',
                  '300',
                  'True']
 
-_DIMENSION_KEYS = ['names', 'units', 'scales']
-_DIMENSION_VALS = ['x,y,z', 'nm', '9,9,25']
-
 _DEFAULT_DIR = dirname(dirname(abspath(__file__)))
 _DEFAULT_FN = 'proofreading.ini'
 
 
 class _Arguments:
     def __init__(self):
-        for arg in _DEFAULT_KEYS+_DIMENSION_KEYS:
+        for arg in _DEFAULT_KEYS:
             setattr(self, arg, None)
 
 
@@ -45,18 +42,12 @@ def write_config(**kwargs):
     config_path = _DEFAULT_DIR
     config = ConfigParser()
     config['DEFAULTS'] = {}
-    config['DIMENSIONS'] = {}
     for idx, key in enumerate(_DEFAULT_KEYS):
         config['DEFAULTS'][key] = _DEFAULT_VALS[idx]
-
-    for idx, key in enumerate(_DIMENSION_KEYS):
-        config['DIMENSIONS'][key] = _DIMENSION_VALS[idx]
 
     for key, val in kwargs.items():
         if key in _DEFAULT_KEYS:
             config['DEFAULTS'][key] = str(val)
-        if key in _DIMENSION_KEYS:
-            config['DIMENSIONS'][key] = str(val)
         if key == 'config_path':
             config_path = val
 
@@ -85,22 +76,13 @@ def determine_args(ap_args):
     config.read(config_fn)
 
     args = _Arguments()
-    for key in _DEFAULT_KEYS+_DIMENSION_KEYS:
+    for key in _DEFAULT_KEYS:
         if getattr(ap_args, key):
             setattr(args, key, getattr(ap_args, key))
         else:
-            if key in _DEFAULT_KEYS:
-                setattr(args, key, config['DEFAULTS'][key])
-            else:
-                setattr(args, key, config['DIMENSIONS'][key])
+            setattr(args, key, config['DEFAULTS'][key])
 
     args.save_int = int(args.save_int)
-
-    args.dimensions = {
-        'names': [x for x in args.names.split(',')],
-        'units': args.units,
-        'scales': [int(x) for x in args.scales.split(',')]
-    }
 
     if args.remove_token.lower() in ('yes', 'true', 't', 'y', '1'):
         args.remove_token = True

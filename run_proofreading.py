@@ -56,7 +56,6 @@ def run_proofreading(args):
                             graph_tool=graph_tool,
                             base_vol=base_path,
                             raw_data=raw_path,
-                            dimensions=args.dimensions,
                             timer_interval=args.save_int,
                             remove_token=args.remove_token) as aobr:
         aobr.exit_event.wait()
@@ -104,18 +103,6 @@ if __name__ == '__main__':
                     help='flag that decides whether to delete the token created'
                          ' by authenticating to neuroglancer upon exit of the '
                          'program')
-
-    ap.add_argument('-names',
-                    type=str,
-                    help='names of the stack coordinates as comma separated '
-                         'items, e.g. x,y,z')
-
-    ap.add_argument('-scales',
-                    help='scale of the stack coordinates entered as comma '
-                         'separated items, e.g. 9,9,25')
-
-    ap.add_argument('-units', type=str,
-                    help='metric unit of the coordinate scales given')
 
     ap.set_defaults(func=run_proofreading)
 
