@@ -512,10 +512,6 @@ class NeuronProofreading(_ViewerBase2Col):
             self.graph.del_node(members)
             self._upd_viewer(clear_viewer=True)
 
-    def toggle_hover_value_display(viewer_item):
-        with viewer_item.viewer.config_state.txn() as s:
-            s.showLayerHoverValues = not s.showLayerHoverValues
-
     # DATA HANDLING
     def _load_data(self, data):
         """function to load data from previous revision session and set viewer
@@ -612,16 +608,17 @@ class NeuronProofreading(_ViewerBase2Col):
         id_loc_map = list()
         for item in annotations:
             id_loc_map.append(item.center)
-        try:
-            picked_coord = np.array(action_state.mouseVoxelCoordinates)
-            idx = np.linalg.norm(picked_coord - np.array(id_loc_map),
-                                 axis=1).argmin()
+        if id_loc_map:
+            try:
+                picked_coord = np.array(action_state.mouseVoxelCoordinates)
+                idx = np.linalg.norm(picked_coord - np.array(id_loc_map),
+                                     axis=1).argmin()
 
-            annotations.pop(idx)
-            self.viewer.set_state(s)
-        except KeyError:
-            self.upd_msg('could not delete annotation')
-            return
+                annotations.pop(idx)
+                self.viewer.set_state(s)
+            except KeyError:
+                self.upd_msg('could not delete annotation')
+                return
 
     # MERGE FALSE SPLITS
     def _get_edge_information(self, action_state):

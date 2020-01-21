@@ -200,15 +200,8 @@ class _ViewerBase:
             layer (str) : name of the target layer
             segments (list or set) : segments to display
         """
-        # the neuroglancer viewer freezes when trying to modify display settings
-        # through key callbacks while layer options interface is open
-        # - request user to close if this is the case
-        if not self.viewer.state.selectedLayer.visible:
-            with self.viewer.txn() as s:
-                s.layers[layer].segments = segments
-        else:
-            msg = 'Close layer option window before changing segment display.'
-            self.upd_msg(msg)
+        with self.viewer.txn() as s:
+            s.layers[layer].segments = segments
 
     def get_viewport_loc(self):
         """retrieves voxel coordinates of the viewport center"""
@@ -231,25 +224,22 @@ class _ViewerBase:
         Args:
             layer (str) : name of the target layer
         """
-
-        # the neuroglancer viewer freezes when trying to modify display settings
-        # through key callbacks while layer options interface is open
-        # - request user to close if this is the case
         state = deepcopy(self.viewer.state)
-        if not state.selectedLayer.visible:
-            cur_val = state.layers[layer].selectedAlpha
-            vals = [0, .25, .5]
-            val = vals[-1]
-            if cur_val in vals:
-                idx = vals.index(cur_val)
-                idx = (idx + 1) % len(vals)
-                val = vals[idx]
-            state.layers[layer].selectedAlpha = val
-            self.viewer.set_state(state)
-        else:
-            msg = 'Close layer option window before changing opacity via key ' \
-                  'board.'
-            self.upd_msg(msg)
+        cur_val = state.layers[layer].selectedAlpha
+        vals = [0, .25, .5]
+        val = vals[-1]
+        if cur_val in vals:
+            idx = vals.index(cur_val)
+            idx = (idx + 1) % len(vals)
+            val = vals[idx]
+        state.layers[layer].selectedAlpha = val
+        self.viewer.set_state(state)
+
+    def toggle_hover_value_display(self):
+        """toggles the display of item values at the cursor position in the
+        layer panel"""
+        with self.viewer.config_state.txn() as s:
+            s.showLayerHoverValues = not s.showLayerHoverValues
 
 
 class _ViewerBase2Col(_ViewerBase):
