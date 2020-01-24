@@ -137,7 +137,9 @@ class LocalGraph:
         for node in edge:
             if node not in self.graph.keys():
                 self.add_node(node)
-            self.graph[node].append(return_other(edge, node))
+            partner = return_other(edge, node)
+            if partner not in self.graph[node]:
+                self.graph[node].append(partner)
         self._add_to_cc(edge)
 
     def del_edge(self, edge):

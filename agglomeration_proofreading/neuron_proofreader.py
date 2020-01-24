@@ -414,19 +414,23 @@ class NeuronProofreading(_ViewerBase2Col):
                          if layer.type == "segmentation")
             selected_object = action_state.selected_values[layer]
         except KeyError:
-            msg = 'Cursor misplaced - try again'
-            self.upd_msg(msg)
+            self.cursor_misplaced_msg()
             return
         # When equivalences are set via the neuroglancer equivalence dictionary
         # the selected_values objects retrieved in the action state is of type
         # MapEntrys with the first entry being the segment id and the second the
         # mapped/agglomerated id. Otherwise the segment id is an int.
-        if type(selected_object) == neuroglancer.viewer_config_state.MapEntry:
-            return selected_object[0]
-        elif type(selected_object) == int:
-            return selected_object
+        return_val = None
+        if isinstance(selected_object,
+                      neuroglancer.viewer_config_state.MapEntry):
+            return_val = selected_object[0]
+        elif isinstance(selected_object, int):
+            return_val = selected_object
+        if return_val and return_val != 0:
+            return return_val
         else:
-            return None
+            self.cursor_misplaced_msg()
+            return
 
     def _toggle_neuron(self):
         """Allows to toggle the display of the neuron that is reconstructed in
@@ -469,9 +473,9 @@ class NeuronProofreading(_ViewerBase2Col):
             action_state: neuroglancer.viewer_config_state.ActionState
         """
         sv = self._get_sv_id(action_state)
-        msg = 'retrieving agglomeration information  for segment ' + str(sv)
-        self.upd_msg(msg)
-        if type(sv) == int:
+        if isinstance(sv, int):
+            msg = 'retrieving agglomeration information  for segment ' + str(sv)
+            self.upd_msg(msg)
             self.action_history.append(
                 {'add_segment': deepcopy(self.graph.graph)})
 
@@ -496,7 +500,7 @@ class NeuronProofreading(_ViewerBase2Col):
            action_state: neuroglancer.viewer_config_state.ActionState
        """
         sv = self._get_sv_id(action_state)
-        if type(sv) == int:
+        if isinstance(sv, int):
             if sv not in self.graph.graph.keys():
                 msg = 'Cursor misplaced. Segment' + str(sv) + \
                       'was not found in the graph'
@@ -509,6 +513,11 @@ class NeuronProofreading(_ViewerBase2Col):
             members = self.graph.cc[idx]
             self.graph.del_node(members)
             self._upd_viewer(clear_viewer=True)
+
+    def cursor_misplaced_msg(self):
+        """function to display message that cursor was misplaced"""
+        msg = 'Cursor misplaced - try again'
+        self.upd_msg(msg)
 
     # DATA HANDLING
     def _load_data(self, data):
@@ -671,8 +680,7 @@ class NeuronProofreading(_ViewerBase2Col):
                                1]
                            ]
         if any(break_condition):
-            msg = 'cursor misplaced - try again by setting first edge node'
-            self.upd_msg(msg)
+            self.cursor_misplaced_msg()
             return
         else:
             self.action_history.append({'set': deepcopy(self.graph.graph)})
@@ -726,8 +734,7 @@ class NeuronProofreading(_ViewerBase2Col):
             sv (int) : segment id
         """
         edges = self.graph_tools.get_graph(sv)
-        if type(edges[0]
-                ) == int:  # segment has no partner in agglomeration
+        if isinstance(edges[0], int):  # segment has no partner in agglomeration
             self.graph.add_node(edges[0])
         else:
             self.graph.add_edge(edges)
