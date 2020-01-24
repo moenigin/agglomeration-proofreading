@@ -181,9 +181,11 @@ class NeuronProofreading(_ViewerBase2Col):
         layers = {self.aggl_layer: base_vol, self.base_layer: base_vol}
 
         # load data
+        last_position = [0, 0, 0]
         self.load_data_msg = ''
         if data is not None:
             self._load_data(data)
+            last_position = data['last_position']
         self.action_history.max_length = 10
 
         super(NeuronProofreading, self).__init__(raw_data=raw_data,
@@ -199,13 +201,8 @@ class NeuronProofreading(_ViewerBase2Col):
         self.timer.start_timer(func=self._auto_save)
         self.toggle_hover_value_display()
         self._upd_viewer()
-        self.set_viewer_loc(data['last_position'])
+        self.set_viewer_loc(last_position)
         self.upd_msg(self.load_data_msg)
-
-        # load data
-        if data is not None:
-            self._load_data(data)
-        self.action_history.max_length = 10
 
     # autosave upon exit
     def exit(self):
@@ -256,7 +253,8 @@ class NeuronProofreading(_ViewerBase2Col):
         self.viewer.actions.add('delete_closest_annotation',
                                 self._delete_closest_annotation)
         self.viewer.actions.add('exit_revision', lambda s: self.exit())
-        self.viewer.actions.add('toggle_hover_values', lambda s: self.toggle_hover_value_display())
+        self.viewer.actions.add('toggle_hover_values',
+                                lambda s: self.toggle_hover_value_display())
 
         _DEFAULT_DIR = os.path.dirname(os.path.abspath(__file__))
         fn = 'KEYBINDINGS_proofreader.ini'
@@ -564,7 +562,8 @@ class NeuronProofreading(_ViewerBase2Col):
         new_data['neuron_graph'] = self.graph.graph
         new_data['ts'] = datetime.timestamp(datetime.now())
         with open(sv_fn, 'w') as f:
-            json.dump(new_data, f)
+            json.dump(new_data, f, sort_keys=False, indent=3,
+                      separators=(',', ': '))
         for name in self.var_names:
             setattr(getattr(self, name), 'unsaved_changes', False)
 
@@ -682,7 +681,7 @@ class NeuronProofreading(_ViewerBase2Col):
             # allow updating the location entry for a pair in edge_to_set
             self.edges_to_set.update([edge for edge in self.edges_to_set
                                       if set(edge[1]) != set(
-                                        self.set_edge_ids_temp)])
+                    self.set_edge_ids_temp)])
             self.edges_to_set.append(
                 [self.set_edge_loc_temp, self.set_edge_ids_temp])
 
@@ -833,12 +832,14 @@ class NeuronProofreading(_ViewerBase2Col):
     def _remove_merged_group(self):
         """Splits equivalences of a group of segments displayed in the base
         volume viewport to all other segments."""
-        segments = list(self.viewer.state.layers[self.base_layer].segments)
+        segments = [int(item) for item in
+                    self.viewer.state.layers[self.base_layer].segments]
         self.upd_msg('removing segments ')
         if all([sv in self.graph.graph.keys() for sv in segments]):
             edge_list = self.graph.return_edge_list(segments)
         else:
             edge_list = self.graph_tools.get_edges(segments)
+
         edges_to_remove = isolate_set(segments, edge_list)
         self.action_history.append(
             {'split': [edges_to_remove,
