@@ -49,16 +49,16 @@ class CustomList:
                                 earlier entries are discarded if max_length is
                                 exceeded
     """
-    def __init__(self, data=[], max_length=None):
-        self._data = data
+    def __init__(self, data=None, max_length=None):
+        if data is None:
+            self._data = []
+        else:
+            self._data = data
         self.unsaved_changes = False
         self.max_length = max_length
 
     def __add__(self, other):
-        self._data = self._data + other
-        self.unsaved_changes = True
-        self.check_length()
-        return CustomList(self._data)
+        self.__iadd__(other)
 
     def __delitem__(self, key):
         self.unsaved_changes = True
@@ -80,22 +80,34 @@ class CustomList:
     def __iter__(self):
         return iter(self._data)
 
+    def __len__(self):
+        return len(self._data)
+
+    def __repr__(self): # ist das boese?
+        return str(self._data)
+
+    def __reversed__(self):
+        return self._data[::-1]
+
     def __setitem__(self, key, value):
         self._data[key] = value
         self.unsaved_changes = True
 
-    def __len__(self):
-        return len(self._data)
+    def add(self, other):
+        self.__iadd__(other)
 
     def append(self, item):
         self._data.append(item)
         self.unsaved_changes = True
         self.check_length()
 
-    def add(self, data):
-        self._data = self._data + data
-        self.unsaved_changes = True
-        self.check_length()
+    def check_length(self):
+        """removes entries from the beginning if maximal length is exceeded"""
+        if self.max_length:
+            self._data = self._data[-self.max_length:]
+
+    def extend(self, other):
+        self.__iadd__(other)
 
     def pop(self, index=-1):
         self._data.pop(index)
@@ -110,8 +122,3 @@ class CustomList:
         self._data = data
         self.unsaved_changes = True
         self.check_length()
-
-    def check_length(self):
-        """removes entries from the beginning if maximal length is exceeded"""
-        if self.max_length:
-            self._data = self._data[-self.max_length:]
