@@ -83,8 +83,8 @@ class CustomList:
     def __len__(self):
         return len(self._data)
 
-    def __repr__(self): # ist das boese?
-        return str(self._data)
+    def __repr__(self):
+        return '{} {}'.format(self._data, self.__class__)
 
     def __reversed__(self):
         return self._data[::-1]
@@ -92,6 +92,9 @@ class CustomList:
     def __setitem__(self, key, value):
         self._data[key] = value
         self.unsaved_changes = True
+
+    def __str__(self):
+        return '{},  unsaved changes: {}'.format(self._data, self.unsaved_changes)
 
     def add(self, other):
         self.__iadd__(other)
