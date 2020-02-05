@@ -181,7 +181,7 @@ class NeuronProofreading(_ViewerBase2Col):
         layers = {self.aggl_layer: base_vol, self.base_layer: base_vol}
 
         # load data
-        last_position = [0, 0, 0]
+        last_position = None
         self.load_data_msg = ''
         if data is not None:
             self._load_data(data)
@@ -201,7 +201,8 @@ class NeuronProofreading(_ViewerBase2Col):
         self.timer.start_timer(func=self._auto_save)
         self.toggle_hover_value_display()
         self._upd_viewer()
-        self.set_viewer_loc(last_position)
+        if last_position:
+            self.set_viewer_loc(last_position)
         self.upd_msg(self.load_data_msg)
 
     # autosave upon exit
@@ -750,8 +751,8 @@ class NeuronProofreading(_ViewerBase2Col):
         """
         self.graph.add_edge(edge)
         self._upd_viewer()
-        msg = 'an edge was set between ' + str(self.set_edge_ids_temp[0]) + \
-              ' and ' + str(self.set_edge_ids_temp[1])
+        msg = 'an edge was set between ' + str(edge[0]) + \
+              ' and ' + str(edge[1])
         self.upd_msg(msg)
 
     # SPLIT FALSE MERGER

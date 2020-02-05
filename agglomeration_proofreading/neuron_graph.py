@@ -273,7 +273,7 @@ class GraphTools:
         """returns all edges in the agglomerated segment to which sv_id belongs
 
         Args:
-            sv_id (int or list) : segment ids
+            sv_id (int) : segment id for which the graph should be fetched
 
         Returns:
             edges (list) : list of all edges of the agglomerated segment(s) of
