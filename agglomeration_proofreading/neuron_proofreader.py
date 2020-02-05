@@ -413,7 +413,7 @@ class NeuronProofreading(_ViewerBase2Col):
             layer = next(layer.name for layer in
                          action_state.viewer_state.layers
                          if layer.type == "segmentation")
-            selected_object = action_state.selected_values[layer]
+            selected_object = action_state.selected_values[layer].value
         except KeyError:
             self.cursor_misplaced_msg()
             return
@@ -423,7 +423,7 @@ class NeuronProofreading(_ViewerBase2Col):
         # mapped/agglomerated id. Otherwise the segment id is an int.
         return_val = None
         if isinstance(selected_object,
-                      neuroglancer.viewer_config_state.MapEntry):
+                      neuroglancer.viewer_config_state.SegmentIdMapEntry):
             return_val = selected_object[0]
         elif isinstance(selected_object, int):
             return_val = selected_object
