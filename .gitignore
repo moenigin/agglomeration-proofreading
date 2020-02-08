@@ -1,10 +1,12 @@
 # Custom ignores
 egg_info/
 testviewer_base.py
+review_proofreading.py
 todo.txt
 *.png
 KeyboardEventCodeToKey.csv
 WriteManualToPDF.py
+KEYBINDINGS_master.ini
 NG_DEFAULT_KEYBINDINGS.ini
 
 ## Standard python ignores

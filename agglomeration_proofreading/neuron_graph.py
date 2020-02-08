@@ -247,11 +247,15 @@ class GraphTools:
         belongs
 
         Args:
-            sv_id (int) : segment id
+            sv_id (int or list) : segment id (list)
 
         Returns:
-            list of members of the agglomerated parent segment to sv_id"""
-        return self.API_fcn.get_groups(sv_id)[sv_id]
+            dict : key = segment, values = members of the agglomerated parent
+                   segments to sv_id
+
+
+        """
+        return self.API_fcn.get_groups(sv_id)
 
     def get_edges(self, ids):
         """retrieves all edges of all segments in ids
@@ -273,11 +277,13 @@ class GraphTools:
         """returns all edges in the agglomerated segment to which sv_id belongs
 
         Args:
-            sv_id (int) : segment id for which the graph should be fetched
+            sv_id (int, list) : segment id (list) for which the graph should be
+                                fetched
 
         Returns:
-            edges (list) : list of all edges of the agglomerated segment(s) of
-            sv_id"""
+            edges (dict) : key = segment id, values = list of all edges of the
+                           agglomerated segment/parent of a given segment_id
+            """
         members = self.get_members(sv_id)
-        edges = self.get_edges(members)
+        edges = {sv: self.get_edges(members[sv]) for sv in int_to_list(sv_id)}
         return edges

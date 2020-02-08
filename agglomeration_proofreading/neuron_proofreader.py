@@ -317,7 +317,7 @@ class NeuronProofreading(_ViewerBase2Col):
             else:
                 # otherwise get the graph of the neuron
                 agglo_id = self.graph_tools.get_agglo_id(segment_id)
-                members = self.graph_tools.get_members(agglo_id)
+                members = self.graph_tools.get_members(agglo_id)[agglo_id]
                 # if edges to delete have already been identified, check whether
                 # segment_id is part of merged segment and make sure that the
                 # display reflects already performed correction locally
@@ -734,7 +734,7 @@ class NeuronProofreading(_ViewerBase2Col):
         Args:
             sv (int) : segment id
         """
-        edges = self.graph_tools.get_graph(sv)
+        edges = self.graph_tools.get_graph(sv)[sv]
         if isinstance(edges[0], int):  # segment has no partner in agglomeration
             self.graph.add_node(edges[0])
         else:
@@ -863,7 +863,6 @@ class NeuronProofreading(_ViewerBase2Col):
         if any(self.action_history):
             last_action = [*self.action_history[-1].keys()][0]
             self.graph.graph = self.action_history[-1][last_action]
-            sv = None
             if last_action == 'set':
                 self.edges_to_set.pop()
             elif last_action == 'del':
