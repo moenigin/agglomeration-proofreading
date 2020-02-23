@@ -15,13 +15,29 @@ class _ViewerBase:
 
     Attributes:
         _driver (selenium.webdriver.chrome.webdriver.WebDriver) : webdriver to
-                                                                    run browser
+                                                                  run browser
         stopTimer (threading.Event) : event for autosave timer is set at
-                                        interval sec
+                                      interval sec
         lock (threading.Lock) : lock to ensure data is not modified while saving
         exit_event (threading.Event) : by calling wait on this event it can be
-                                    used to keep the python server running. Exit
-                                    functions should then set this event
+                                       used to keep the python server running.
+                                       Exit functions should then set this event
+        coord_list_map (dict) : dictionary that maps the coordinate lists to an
+                                index. The index of the current list between
+                                which coordinate entries one can jump is stored
+                                in cur_coord_list_idx
+        coord_list_idx_map (dict) : dictionary that maps the index of last
+                                    coordinate (-> cur_coord_idx) visited for a
+                                    certain list to an index
+                                    (-> cur_coord_list_idx)
+        cur_coord_list (list) : current list of coordinates to which one can jump
+        cur_coord_list_idx (int) : index of the current list of coordinates in
+                             coord_list_map and coord_list_idx_map
+        cur_coord_idx (int) : index of the current coordinate entry in the
+                              cur_coord_list
+        coord_list_names (list) : list of attribute names, these class
+                                  attributes contain the lists of coordinates
+                                  which one likes to visit
         optional:
         annotation : see class Annotations
         timer : see class Timer
@@ -33,6 +49,7 @@ class _ViewerBase:
                  annotation=False,
                  timer_interval=None,
                  remove_token=True,
+                 coordinate_lists=None,
                  **kwargs):
         """Initiates viewer base class by
 
@@ -42,15 +59,18 @@ class _ViewerBase:
 
         Args:
             raw_data (str) : full id of the raw data layer in form of
-                        "src:projectId:datasetId:volumeId"
+                             "src:projectId:datasetId:volumeId"
             layers (dict) : dict with layer names as keys and layer ids as values
-            annotation(Boolean) : determines whether to build a viewer with
+            annotation (bool) : determines whether to build a viewer with
                                 annotation layer, optional
-            timer_interval (int) : interval betweenn timer execution, if set
-                                adds a timer to the viewer, optional
-            remove_token(Boolean) : determines whether to remove personalised
-                                    token created during the neuroglancer
-                                    authentication procedure
+            timer_interval (int) : interval between timer execution, if set
+                                   adds a timer to the viewer, optional
+            remove_token (bool) : determines whether to remove personalised
+                                  token created during the neuroglancer
+                                  authentication procedure
+            coordinate_lists (dict) : dictionary with keys = list name and
+                                      values = list of coordinates to which to
+                                      jump to
         """
         self.dimensions = None
         self.viewer = neuroglancer.Viewer()
@@ -62,6 +82,20 @@ class _ViewerBase:
             self.annotation_flag = False
         if timer_interval is not None:
             self.timer = Timer(timer_interval)
+
+        # attributes for visiting coordinates in a list and switching between
+        # coordinate lists
+        self.cur_coord_list = None
+        self.cur_coord_list_idx = None
+        self.cur_coord_idx = None
+        self.coord_list_map = dict()
+        self.coord_list_idx_map = dict()
+
+        if coordinate_lists is not None:
+            for key, val in coordinate_lists.items:
+                setattr(self, key, val)
+            self.coord_list_names = list(coordinate_lists.keys())
+            self.mk_coord_list_maps()
 
         self.remove_token = remove_token
         self.exit_event = Event()
@@ -240,6 +274,68 @@ class _ViewerBase:
         layer panel"""
         with self.viewer.config_state.txn() as s:
             s.showLayerHoverValues = not s.showLayerHoverValues
+
+    # functions to jump to different coordinates stored in lists
+    def toggle_location_lists(self):
+        """toggles between the different coordinate lists and sets the position
+        index to the last visited coordinate in the list"""
+        self.coord_list_idx_map[self.cur_coord_list_idx] = self.cur_coord_idx
+        if self.cur_coord_list_idx < len(self.coord_list_map)-1:
+            self.cur_coord_list_idx += 1
+        else:
+            self.cur_coord_list_idx = 0
+        self.cur_coord_list = self.coord_list_map[self.cur_coord_list_idx]
+        self.cur_coord_idx = self.coord_list_idx_map[self.cur_coord_list_idx]
+        msg = self.coord_list_names[self.cur_coord_list_idx] + ' = current coordinate list'
+        self.upd_msg(msg)
+        self.set_current_location()
+
+    def mk_coord_list_maps(self):
+        """creates maps for locations lists to enable switching between
+        location lists
+        """
+        self.cur_coord_list_idx = -1
+        self.cur_coord_idx = 0
+        for idx, list_name in enumerate(self.coord_list_names):
+            self.coord_list_map[idx] = getattr(self, list_name)
+            self.coord_list_idx_map[idx] = 0
+
+    def delete_cur_coord_list_item(self):
+        """deletes the current coordinates in the current location list and sets
+         """
+        msg = 'deleted {} from {}'.format(
+            self.cur_coord_list[self.cur_coord_idx],
+            self.coord_list_names[self.cur_coord_list_idx]
+        )
+        self.upd_msg(msg)
+        self.cur_coord_list.pop(self.cur_coord_idx)
+        self.set_current_location()
+
+    def next_coordinate(self):
+        """sets the viewport location to the next coordinate in the current
+        coordinate list"""
+        next_id = self.cur_coord_idx + 1
+        if next_id == len(self.cur_coord_list):
+            msg = 'reached end of the list'
+        else:
+            self.cur_coord_idx = next_id
+            self.set_current_location()
+            msg = 'displaying item {} of {}'.format(self.cur_coord_idx,
+                                                    len(self.cur_coord_list))
+        self.upd_msg(msg)
+
+    def prev_coordinate(self):
+        """sets the viewport location to the next coordinate in the current
+        coordinate list"""
+        self.cur_coord_idx = max(0, self.cur_coord_idx - 1)
+        msg = 'displaying item {} of {}'.format(self.cur_coord_idx,
+                                                len(self.cur_coord_list))
+        self.upd_msg(msg)
+        self.set_current_location()
+
+    def set_current_location(self):
+        """sets viewport to the """
+        self.set_viewer_loc(self.cur_coord_list[self.cur_coord_idx])
 
 
 class _ViewerBase2Col(_ViewerBase):

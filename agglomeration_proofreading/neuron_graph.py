@@ -142,6 +142,16 @@ class LocalGraph:
                 self.graph[node].append(partner)
         self._add_to_cc(edge)
 
+    def check_in_graph(self, nodes):
+        """checks whether nodes are in the graph
+
+        Args:
+            nodes (int, list) : id of nodes to check graph membership
+        Returns:
+            bool : True if all nodes are members in the graph
+        """
+        return all([node in self.graph.keys() for node in int_to_list(nodes)])
+
     def del_edge(self, edge):
         """Deletes edges from the graph and updates the connected component
         attribute.
@@ -158,8 +168,11 @@ class LocalGraph:
 
     def del_single_edge(self, edge):
         """Deletes a single edge from the graph"""
-        for node in edge:
-            self.graph[node].remove(return_other(edge, node))
+        if self.check_in_graph(edge):
+            for node in edge:
+                self.graph[node].remove(return_other(edge, node))
+        else:
+            print('not all nodes of', edge, 'are in the graph')
 
     def _add_to_cc(self, edge):
         """Updates connected component by adding edge

@@ -151,10 +151,10 @@ class NeuronProofreading(_ViewerBase2Col):
             graph_tool(neuron_graph.GraphTool) : functions to retrieve
                                                 information about the
                                                 agglomeration graph
-            base_vol (str) : base segmentation volume id :
-                            data_src:project:dataset:volume_name
-            raw_data (str) : image data volume id :
-                            data_src:project:dataset:volume_name
+            base_vol (str) : base segmentation volume id in form of
+                             data_src:project:dataset:volume_name
+            raw_data (str) : image data volume id in form of
+                             data_src:project:dataset:volume_name
             data (dict) : data from previous review session (optional)
             timer_interval (int) : autosave interval in sec (optional)
             remove_token (boolean) : flag that decides whether to remove
@@ -198,7 +198,8 @@ class NeuronProofreading(_ViewerBase2Col):
         with self.viewer.txn() as s:
             s.layers[self.base_layer].selectedAlpha = 0
             s.concurrent_downloads = 256
-        self.timer.start_timer(func=self._auto_save)
+        if timer_interval is not None:
+            self.timer.start_timer(func=self._auto_save)
         self.toggle_hover_value_display()
         self._upd_viewer()
         if last_position:
@@ -567,7 +568,10 @@ class NeuronProofreading(_ViewerBase2Col):
         sv_fn = os.path.join(self.dir_path, fn)
         new_data = dict()
         for name in self.var_names:
-            new_data[name] = list(getattr(self, name))
+            if name == 'action_history':
+                new_data[name] = []
+            else:
+                new_data[name] = list(getattr(self, name))
         new_data['last_position'] = self.get_viewport_loc()
         new_data['neuron_graph'] = self.graph.graph
         new_data['ts'] = datetime.timestamp(datetime.now())

@@ -22,19 +22,19 @@ def run_proofreading(args):
         full_fn = os.path.join(args.dir_path, latest_file)
         with open(full_fn, 'rb') as f:
             review_data = json.load(f)
-            review_data['neuron_graph'] = keys_to_int(review_data[
-                                                          'neuron_graph'])
-            for dct in review_data['action_history']:
-                key = next(iter(dct.keys()))
-                val = dct[key]
-                if key == 'split':
-                    dct[key] = [val[0], keys_to_int(val[1])]
+        review_data['neuron_graph'] = keys_to_int(review_data[
+                                                      'neuron_graph'])
+        for dct in review_data['action_history']:
+            key = next(iter(dct.keys()))
+            val = dct[key]
+            if key == 'split':
+                dct[key] = [val[0], keys_to_int(val[1])]
+            else:
+                if isinstance(val, dict):
+                    dct[key] = keys_to_int(val)
                 else:
-                    if isinstance(val, dict):
-                        dct[key] = keys_to_int(val)
-                    else:
-                        print('The data in ', full_fn, 'has unexpected format '
-                              'and could not be loaded')
+                    print('The data in ', full_fn, 'has unexpected format '
+                          'and could not be loaded')
 
     except ValueError:  # thrown by max if no file with pattern found
         review_data = None
