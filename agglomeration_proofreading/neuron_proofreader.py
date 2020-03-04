@@ -8,9 +8,9 @@ from copy import deepcopy
 from datetime import datetime
 from threading import Lock, Thread
 
-from .viewer_bases import _ViewerBase2Col
-from .neuron_graph import isolate_set, LocalGraph
-from .ap_utils import CustomList, flat_list
+from agglomeration_proofreading.viewer_bases import _ViewerBase2Col
+from agglomeration_proofreading.neuron_graph import isolate_set, LocalGraph
+from agglomeration_proofreading.ap_utils import CustomList, flat_list
 
 
 class NeuronProofreading(_ViewerBase2Col):
@@ -634,12 +634,14 @@ class NeuronProofreading(_ViewerBase2Col):
                 return
 
     # MERGE FALSE SPLITS
-    def _get_edge_information(self, action_state):
+    def _get_edge_information(self, action_state, idx):
         """Adds segment id and cursor position to temporary edge attributes
 
         Args:
             action_state: neuroglancer.viewer_config_state.ActionState
         """
+        if len(self.set_edge_ids_temp) > idx:
+            return
         self.set_edge_ids_temp.append(self._get_sv_id(action_state))
         if action_state.mouse_voxel_coordinates is not None:
             self.set_edge_loc_temp.append(
@@ -655,7 +657,7 @@ class NeuronProofreading(_ViewerBase2Col):
         # reset temporary attributes for edge setting
         self.set_edge_ids_temp = []
         self.set_edge_loc_temp = []
-        self._get_edge_information(action_state=action_state)
+        self._get_edge_information(action_state=action_state, idx=0)
 
     def _get_sv2_for_merging(self, action_state):
         """Retrieves information of the second segment to fix a false split and
@@ -670,7 +672,7 @@ class NeuronProofreading(_ViewerBase2Col):
             self.upd_msg(msg)
             return
         self.upd_msg('retrieving second segment id for edge setting...')
-        self._get_edge_information(action_state=action_state)
+        self._get_edge_information(action_state=action_state, idx=1)
         self._direct_merging()
 
     def _direct_merging(self):
@@ -682,7 +684,8 @@ class NeuronProofreading(_ViewerBase2Col):
         break_condition = [0 in self.set_edge_ids_temp,
                            None in self.set_edge_ids_temp,
                            self.set_edge_ids_temp[0] == self.set_edge_ids_temp[
-                               1]
+                               1],
+                           len(self.set_edge_ids_temp) != 2
                            ]
         if any(break_condition):
             self.cursor_misplaced_msg()
