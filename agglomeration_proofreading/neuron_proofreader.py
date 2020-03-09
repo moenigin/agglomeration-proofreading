@@ -779,11 +779,22 @@ class NeuronProofreading(_ViewerBase2Col):
             # undone with crtl+z though)
             if segment in self.graph.graph.keys():
                 partners = self.graph.graph[segment] + [segment]
+                msg = 'Move cursor to falsely merged partner and press ctrl+x to ' \
+                      'split'
             else:
-                partners = set(flat_list(self.graph_tools.get_edges(segment)))
+                edges = self.graph_tools.get_edges(segment)
+                if any(isinstance(item, list) for item in edges):
+                    partners = set(flat_list(edges))
+                    msg = 'Mergers cannot be split: The selected segment is not ' \
+                           'assigned to the neuron graph.'
+                elif any(isinstance(item, int) for item in edges):
+                    partners = segment
+                    msg = 'The selected segment has no partners'
+                else:
+                    print('show_connected_partners return unexpected result for '
+                          'segment', segment)
             self._upd_viewer_segments(self.base_layer, partners)
-            msg = 'Move cursor to falsely merged partner and press ctrl+x to ' \
-                  'split'
+
             self.upd_msg(msg)
         else:
             msg = 'cursor misplaced'
