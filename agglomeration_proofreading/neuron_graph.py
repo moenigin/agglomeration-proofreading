@@ -98,8 +98,9 @@ class LocalGraph:
             node (int or list) : node or list of node to add as key to the graph dict
         """
         for idx_ in int_to_list(node):
-            self.graph[idx_] = []
-            self._add_to_cc([idx_])
+            if not self.check_in_graph(idx_):
+                self.graph[idx_] = []
+                self._add_to_cc([idx_])
 
     def del_node(self, node):
         """Deletes node(s) from graph and updates connected component attribute.
