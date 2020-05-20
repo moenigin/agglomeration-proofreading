@@ -157,7 +157,8 @@ class _ViewerBase:
             self.dimensions = s.dimensions
             s.layers[''] = neuroglancer.LocalAnnotationLayer(
                 dimensions=self.dimensions,
-                linked_segmentation_layer=name)
+                linked_segmentation_layer={'segments': name})
+                # linked_segmentation_layer=name)
             self.viewer.set_state(s)
             self.get_dimensions_timer.stopTimer.set()
             self._annotation_layer_cb()
