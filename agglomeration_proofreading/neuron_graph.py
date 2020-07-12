@@ -171,7 +171,13 @@ class LocalGraph:
         """Deletes a single edge from the graph"""
         if self.check_in_graph(edge):
             for node in edge:
-                self.graph[node].remove(return_other(edge, node))
+                try: # hacky way to ensure proofreading continues however, this
+                    # is a sign that there is a bug if the partner of an edge
+                    # is not found in the partner list
+                    self.graph[node].remove(return_other(edge, node))
+                except ValueError:
+                    print('ATTENTION:', return_other(edge, node),
+                          'was not found in list of partners of node', node)
         else:
             print('not all nodes of', edge, 'are in the graph')
 
