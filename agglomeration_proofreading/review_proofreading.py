@@ -223,7 +223,7 @@ class ProofreaderMaster(NeuronProofreading):
         else:
             print('this should not happen')
             return
-        self._upd_viewer_segments('base', sv_ids)
+        self.upd_viewer_segments('base', sv_ids)
 
     def _mk_fake_initial_graph(self, edges):
         """Calculates fake initial graph

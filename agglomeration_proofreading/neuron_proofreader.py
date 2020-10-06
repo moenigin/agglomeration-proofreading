@@ -246,11 +246,11 @@ class NeuronProofreading(_ViewerBase2Col):
                                 lambda s: self._undo_last_action())
         self.viewer.actions.add('save_data', lambda s: self._save_data())
         self.viewer.actions.add('toggle_opacity_base',
-                                lambda s: self._toggle_opacity(self.base_layer))
+                                lambda s: self.toggle_opacity(self.base_layer))
         self.viewer.actions.add('toggle_opacity_agglomeration',
-                                lambda s: self._toggle_opacity(self.aggl_layer))
+                                lambda s: self.toggle_opacity(self.aggl_layer))
         self.viewer.actions.add('empty_base_vol',
-                                lambda s: self._upd_viewer_segments(
+                                lambda s: self.upd_viewer_segments(
                                     self.base_layer, []))
         self.viewer.actions.add('delete_closest_annotation',
                                 self._delete_closest_annotation)
@@ -439,7 +439,7 @@ class NeuronProofreading(_ViewerBase2Col):
          the agglomeration layer viewport"""
         segments = self.viewer.state.layers[self.aggl_layer].segments
         if segments:
-            self._upd_viewer_segments(self.aggl_layer, [])
+            self.upd_viewer_segments(self.aggl_layer, [])
         else:
             self._upd_viewer()
 
@@ -793,7 +793,7 @@ class NeuronProofreading(_ViewerBase2Col):
                 else:
                     print('show_connected_partners return unexpected result for '
                           'segment', segment)
-            self._upd_viewer_segments(self.base_layer, partners)
+            self.upd_viewer_segments(self.base_layer, partners)
 
             self.upd_msg(msg)
         else:

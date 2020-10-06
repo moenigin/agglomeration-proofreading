@@ -6,6 +6,9 @@ from configparser import ConfigParser
 from selenium import webdriver
 from threading import Thread, Event
 
+# todo:
+#  use neuroglancer webdriver
+
 
 class _ViewerBase:
     """Base class for neuroglancer viewer
@@ -228,13 +231,15 @@ class _ViewerBase:
         with self.viewer.config_state.txn() as s:
             s.status_messages['status'] = msg
 
-    def _upd_viewer_segments(self, layer, segments):
+    def upd_viewer_segments(self, layer, segments):
         """displays segments in a particular neuroglancer layer
 
         Args:
             layer (str) : name of the target layer
             segments (list or set) : segments to display
         """
+        if isinstance(segments, int):
+            segments = [segments]
         with self.viewer.txn() as s:
             s.layers[layer].segments = segments
 
@@ -252,7 +257,7 @@ class _ViewerBase:
         s.voxel_coordinates = coord
         self.viewer.set_state(s)
 
-    def _toggle_opacity(self, layer):
+    def toggle_opacity(self, layer):
         """Allows to toggle the opacity of the segments in a layer between 0,
         0.25 and 0.5.
 
@@ -276,7 +281,7 @@ class _ViewerBase:
         with self.viewer.config_state.txn() as s:
             s.showLayerHoverValues = not s.showLayerHoverValues
 
-    # functions to jump to different coordinates stored in lists
+    # functions to jump to different coordinates stored in lists todo: move these to separate child class
     def toggle_location_lists(self):
         """toggles between the different coordinate lists and sets the position
         index to the last visited coordinate in the list"""
