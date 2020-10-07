@@ -6,9 +6,6 @@ from configparser import ConfigParser
 from selenium import webdriver
 from threading import Thread, Event
 
-# todo:
-#  use neuroglancer webdriver
-
 
 class _ViewerBase:
     """Base class for neuroglancer viewer
@@ -201,7 +198,6 @@ class _ViewerBase:
     # BROWSER
     def _run_browser(self):
         chrome_options = webdriver.ChromeOptions()
-        chrome_options.add_argument("--disable-infobars")
         chrome_options.add_experimental_option('excludeSwitches',
                                                ['enable-logging'])
         self._driver = webdriver.Chrome(options=chrome_options)
