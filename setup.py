@@ -18,6 +18,5 @@ setuptools.setup(
         'selenium',
         'neuroglancer'
     ],
-    extras_require={'brainmaps_api_fcn': [
-        'git+https://github.com/moenigin/brainmaps_api_fcn.git@master']}
+    extras_require={'brainmaps_api_fcn': ['brainmaps_api_fcn @ git+https://github.com/moenigin/brainmaps_api_fcn.git@master']}
 )
