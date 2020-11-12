@@ -1,6 +1,8 @@
 from os.path import abspath, dirname, join
 from configparser import ConfigParser
 
+# Todo: implement an option to automatic update of the INI file after user input
+
 _DEFAULT_KEYS = ['dir_path', 'service_account', 'data_src', 'raw_data',
                  'base_volume', 'change_stack_id', 'save_int', 'remove_token']
 _DEFAULT_VALS = ['',

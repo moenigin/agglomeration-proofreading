@@ -6,6 +6,7 @@ from configparser import ConfigParser
 from selenium import webdriver
 from threading import Thread, Event
 
+# Todo: outsource to separate package?
 
 class _ViewerBase:
     """Base class for neuroglancer viewer
@@ -158,7 +159,6 @@ class _ViewerBase:
             s.layers[''] = neuroglancer.LocalAnnotationLayer(
                 dimensions=self.dimensions,
                 linked_segmentation_layer={'segments': name})
-                # linked_segmentation_layer=name)
             self.viewer.set_state(s)
             self.get_dimensions_timer.stopTimer.set()
             self._annotation_layer_cb()
@@ -200,6 +200,7 @@ class _ViewerBase:
         chrome_options = webdriver.ChromeOptions()
         chrome_options.add_experimental_option('excludeSwitches',
                                                ['enable-logging'])
+        chrome_options.add_argument("--window_size=1920,1080")
         self._driver = webdriver.Chrome(options=chrome_options)
         self._driver.get(self.viewer.get_viewer_url())
 
@@ -282,13 +283,14 @@ class _ViewerBase:
         """toggles between the different coordinate lists and sets the position
         index to the last visited coordinate in the list"""
         self.coord_list_idx_map[self.cur_coord_list_idx] = self.cur_coord_idx
-        if self.cur_coord_list_idx < len(self.coord_list_map)-1:
+        if self.cur_coord_list_idx < len(self.coord_list_map) - 1:
             self.cur_coord_list_idx += 1
         else:
             self.cur_coord_list_idx = 0
         self.cur_coord_list = self.coord_list_map[self.cur_coord_list_idx]
         self.cur_coord_idx = self.coord_list_idx_map[self.cur_coord_list_idx]
-        msg = self.coord_list_names[self.cur_coord_list_idx] + ' = current coordinate list'
+        msg = self.coord_list_names[
+                  self.cur_coord_list_idx] + ' = current coordinate list'
         self.upd_msg(msg)
         self.set_current_location()
 

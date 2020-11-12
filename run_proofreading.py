@@ -5,11 +5,11 @@ import re
 
 from brainmaps_api_fcn.equivalence_requests import EquivalenceRequests
 from agglomeration_proofreading.neuron_proofreader import NeuronProofreading
-from agglomeration_proofreading.neuron_graph import GraphTools
+from API_interface import GraphTools
 from agglomeration_proofreading.config_fcn import determine_args
 from agglomeration_proofreading.ap_utils import keys_to_int
 
-
+# Todo wrap around Gooey, make this optional when run from command line
 def run_proofreading(args):
     """Sets arguments from parser and starts proofreading tool
 
