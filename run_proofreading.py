@@ -5,7 +5,7 @@ import re
 
 from brainmaps_api_fcn.equivalence_requests import EquivalenceRequests
 from agglomeration_proofreading.neuron_proofreader import NeuronProofreading
-from API_interface import GraphTools
+from agglomeration_proofreading.API_interface import GraphTools
 from agglomeration_proofreading.config_fcn import determine_args
 from agglomeration_proofreading.ap_utils import keys_to_int
 

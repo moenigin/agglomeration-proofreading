@@ -179,7 +179,7 @@ class NeuronProofreading(_ViewerBase2Col):
         self.base_layer = 'base'
         self.aggl_layer = 'agglo'
         layers = {self.aggl_layer: base_vol, self.base_layer: base_vol}
-
+        
         # load data
         last_position = None
         self.load_data_msg = ''
