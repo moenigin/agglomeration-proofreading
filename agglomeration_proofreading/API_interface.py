@@ -1,4 +1,4 @@
-from .ap_utils import int_to_list
+from agglomeration_proofreading.ap_utils import int_to_list
 from brainmaps_api_fcn.basic_requests import EmptyResponse
 
 

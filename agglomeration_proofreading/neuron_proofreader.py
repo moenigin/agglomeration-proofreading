@@ -607,10 +607,14 @@ class NeuronProofreading(_ViewerBase2Col):
         """Retrieves the last branch location that was set and sets the viewer
         position to that location."""
         if any(self.branch_point):
-            idx = max([i for i, point in enumerate(self.branch_point[:])
-                       if not point[1]])
-            coord = self.branch_point[idx][0]
-            self.set_viewer_loc(coord)
+            bps = [i for i, point in enumerate(self.branch_point[:])             if not point[1]]
+            if any (bps):
+                idx = max(bps)
+                coord = self.branch_point[idx][0]
+                self.set_viewer_loc(coord)
+            else:
+                msg = 'no branch points found'
+                self.upd_msg(msg)
         else:
             msg = 'no branch point found'
             self.upd_msg(msg)

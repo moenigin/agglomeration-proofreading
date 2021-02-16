@@ -88,7 +88,7 @@ class _ViewerBase:
         # coordinate lists
         self.cur_coord_list = None
         self.cur_coord_list_idx = None
-        self.cur_coord_idx = None
+        self.cur_coord_idx = 0
         self.coord_list_map = dict()
         self.coord_list_idx_map = dict()
 
@@ -200,8 +200,8 @@ class _ViewerBase:
         chrome_options = webdriver.ChromeOptions()
         chrome_options.add_experimental_option('excludeSwitches',
                                                ['enable-logging'])
-        chrome_options.add_argument("--window_size=1920,1080")
         self._driver = webdriver.Chrome(options=chrome_options)
+        self._driver.maximize_window()
         self._driver.get(self.viewer.get_viewer_url())
 
     # EXIT
@@ -299,7 +299,6 @@ class _ViewerBase:
         location lists
         """
         self.cur_coord_list_idx = -1
-        self.cur_coord_idx = 0
         for idx, list_name in enumerate(self.coord_list_names):
             self.coord_list_map[idx] = getattr(self, list_name)
             self.coord_list_idx_map[idx] = 0
