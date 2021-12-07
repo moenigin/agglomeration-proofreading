@@ -11,18 +11,18 @@ dependencies:
   - decorator=4.4.0=py37_1
   - git=2.20.1=h6bb4b03_0
   - idna=2.8=py37_0
-  - networkx=2.3=py_0
+  - networkx>=2.3=py_0
   - openssl=1.1.1d=he774522_2
   - pip=19.2.3=py37_0
   - pycparser=2.19=py37_0
   - pyopenssl=19.0.0=py37_0
   - pysocks=1.7.1=py37_0
-  - python=3.7.4=h5263a28_0
-  - python-snappy=0.5.4=py37ha925a31_0
-  - selenium=3.141.0=py37he774522_0
+  - python>=3.9=h5263a28_0
+  - python-snappy>=0.5.4=py37ha925a31_0
+  - selenium>=3.141.0=py37he774522_0
   - setuptools=41.4.0=py37_0
   - six=1.12.0=py37_0
-  - snappy=1.1.7=h777316e_3
+  - snappy>=1.1.7=h777316e_3
   - sqlite=3.30.0=he774522_0
   - urllib3=1.25.6=py37_0
   - vc=14.1=h0510ff6_4
