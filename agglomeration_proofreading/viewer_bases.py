@@ -6,7 +6,9 @@ from configparser import ConfigParser
 from selenium import webdriver
 from threading import Thread, Event
 
-# Todo: outsource to separate package?
+
+# Todo: outsource to separate package? add function to retrieve selected items
+#  from all visible layers (or a distinct layer)
 
 class _ViewerBase:
     """Base class for neuroglancer viewer
@@ -50,7 +52,7 @@ class _ViewerBase:
                  annotation=False,
                  timer_interval=None,
                  remove_token=True,
-                 coordinate_lists=None,
+                 # coordinate_lists=None,
                  **kwargs):
         """Initiates viewer base class by
 
@@ -84,19 +86,19 @@ class _ViewerBase:
         if timer_interval is not None:
             self.timer = Timer(timer_interval)
 
-        # attributes for visiting coordinates in a list and switching between
-        # coordinate lists
-        self.cur_coord_list = None
-        self.cur_coord_list_idx = None
-        self.cur_coord_idx = 0
-        self.coord_list_map = dict()
-        self.coord_list_idx_map = dict()
-
-        if coordinate_lists is not None:
-            for key, val in coordinate_lists.items:
-                setattr(self, key, val)
-            self.coord_list_names = list(coordinate_lists.keys())
-            self.mk_coord_list_maps()
+        # # attributes for visiting coordinates in a list and switching between
+        # # coordinate lists
+        # self.cur_coord_list = None
+        # self.cur_coord_list_idx = None
+        # self.cur_coord_idx = 0
+        # self.coord_list_map = dict()
+        # self.coord_list_idx_map = dict()
+        #
+        # if coordinate_lists is not None:
+        #     for key, val in coordinate_lists.items:
+        #         setattr(self, key, val)
+        #     self.coord_list_names = list(coordinate_lists.keys())
+        #     self.mk_coord_list_maps()
 
         self.remove_token = remove_token
         self.exit_event = Event()
@@ -240,6 +242,14 @@ class _ViewerBase:
         with self.viewer.txn() as s:
             s.layers[layer].segments = segments
 
+    def upd_segment_query(self, layer, segments):
+        """enters segments in segment Query Panel for respective layer"""
+        if isinstance(segments, int):
+            segments = [segments]
+        with self.viewer.txn() as s:
+            s.layers[layer].segmentQuery = ', '.join(
+                [str(seg) for seg in segments])
+
     def get_viewport_loc(self):
         """retrieves voxel coordinates of the viewport center"""
         return [int(x) for x in self.viewer.state.voxel_coordinates]
@@ -278,67 +288,67 @@ class _ViewerBase:
         with self.viewer.config_state.txn() as s:
             s.showLayerHoverValues = not s.showLayerHoverValues
 
-    # functions to jump to different coordinates stored in lists todo: move these to separate child class
-    def toggle_location_lists(self):
-        """toggles between the different coordinate lists and sets the position
-        index to the last visited coordinate in the list"""
-        self.coord_list_idx_map[self.cur_coord_list_idx] = self.cur_coord_idx
-        if self.cur_coord_list_idx < len(self.coord_list_map) - 1:
-            self.cur_coord_list_idx += 1
-        else:
-            self.cur_coord_list_idx = 0
-        self.cur_coord_list = self.coord_list_map[self.cur_coord_list_idx]
-        self.cur_coord_idx = self.coord_list_idx_map[self.cur_coord_list_idx]
-        msg = self.coord_list_names[
-                  self.cur_coord_list_idx] + ' = current coordinate list'
-        self.upd_msg(msg)
-        self.set_current_location()
-
-    def mk_coord_list_maps(self):
-        """creates maps for locations lists to enable switching between
-        location lists
-        """
-        self.cur_coord_list_idx = -1
-        for idx, list_name in enumerate(self.coord_list_names):
-            self.coord_list_map[idx] = getattr(self, list_name)
-            self.coord_list_idx_map[idx] = 0
-
-    def delete_cur_coord_list_item(self):
-        """deletes the current coordinates in the current location list and sets
-         """
-        msg = 'deleted {} from {}'.format(
-            self.cur_coord_list[self.cur_coord_idx],
-            self.coord_list_names[self.cur_coord_list_idx]
-        )
-        self.upd_msg(msg)
-        self.cur_coord_list.pop(self.cur_coord_idx)
-        self.set_current_location()
-
-    def next_coordinate(self):
-        """sets the viewport location to the next coordinate in the current
-        coordinate list"""
-        next_id = self.cur_coord_idx + 1
-        if next_id == len(self.cur_coord_list):
-            msg = 'reached end of the list'
-        else:
-            self.cur_coord_idx = next_id
-            self.set_current_location()
-            msg = 'displaying item {} of {}'.format(self.cur_coord_idx,
-                                                    len(self.cur_coord_list))
-        self.upd_msg(msg)
-
-    def prev_coordinate(self):
-        """sets the viewport location to the next coordinate in the current
-        coordinate list"""
-        self.cur_coord_idx = max(0, self.cur_coord_idx - 1)
-        msg = 'displaying item {} of {}'.format(self.cur_coord_idx,
-                                                len(self.cur_coord_list))
-        self.upd_msg(msg)
-        self.set_current_location()
-
-    def set_current_location(self):
-        """sets viewport to the """
-        self.set_viewer_loc(self.cur_coord_list[self.cur_coord_idx])
+    # # functions to jump to different coordinates stored in lists todo: move these to separate child class
+    # def toggle_location_lists(self):
+    #     """toggles between the different coordinate lists and sets the position
+    #     index to the last visited coordinate in the list"""
+    #     self.coord_list_idx_map[self.cur_coord_list_idx] = self.cur_coord_idx
+    #     if self.cur_coord_list_idx < len(self.coord_list_map) - 1:
+    #         self.cur_coord_list_idx += 1
+    #     else:
+    #         self.cur_coord_list_idx = 0
+    #     self.cur_coord_list = self.coord_list_map[self.cur_coord_list_idx]
+    #     self.cur_coord_idx = self.coord_list_idx_map[self.cur_coord_list_idx]
+    #     msg = self.coord_list_names[
+    #               self.cur_coord_list_idx] + ' = current coordinate list'
+    #     self.upd_msg(msg)
+    #     self.set_current_location()
+    #
+    # def mk_coord_list_maps(self):
+    #     """creates maps for locations lists to enable switching between
+    #     location lists
+    #     """
+    #     self.cur_coord_list_idx = -1
+    #     for idx, list_name in enumerate(self.coord_list_names):
+    #         self.coord_list_map[idx] = getattr(self, list_name)
+    #         self.coord_list_idx_map[idx] = 0
+    #
+    # def delete_cur_coord_list_item(self):
+    #     """deletes the current coordinates in the current location list and sets
+    #      """
+    #     msg = 'deleted {} from {}'.format(
+    #         self.cur_coord_list[self.cur_coord_idx],
+    #         self.coord_list_names[self.cur_coord_list_idx]
+    #     )
+    #     self.upd_msg(msg)
+    #     self.cur_coord_list.pop(self.cur_coord_idx)
+    #     self.set_current_location()
+    #
+    # def next_coordinate(self):
+    #     """sets the viewport location to the next coordinate in the current
+    #     coordinate list"""
+    #     next_id = self.cur_coord_idx + 1
+    #     if next_id == len(self.cur_coord_list):
+    #         msg = 'reached end of the list'
+    #     else:
+    #         self.cur_coord_idx = next_id
+    #         self.set_current_location()
+    #         msg = 'displaying item {} of {}'.format(self.cur_coord_idx,
+    #                                                 len(self.cur_coord_list))
+    #     self.upd_msg(msg)
+    #
+    # def prev_coordinate(self):
+    #     """sets the viewport location to the next coordinate in the current
+    #     coordinate list"""
+    #     self.cur_coord_idx = max(0, self.cur_coord_idx - 1)
+    #     msg = 'displaying item {} of {}'.format(self.cur_coord_idx,
+    #                                             len(self.cur_coord_list))
+    #     self.upd_msg(msg)
+    #     self.set_current_location()
+    #
+    # def set_current_location(self):
+    #     """sets viewport to the """
+    #     self.set_viewer_loc(self.cur_coord_list[self.cur_coord_idx])
 
 
 class _ViewerBase2Col(_ViewerBase):
@@ -360,6 +370,7 @@ class _ViewerBase2Col(_ViewerBase):
     def __init__(self,
                  raw_data,
                  layers={},
+                 ini_dir=None,
                  **kwargs):
         """Initiates ViewerBase class with neuroglancer in 2 column layout
 
@@ -373,6 +384,12 @@ class _ViewerBase2Col(_ViewerBase):
                              'entries of "layer": <path to data>')
         self.layer_names = ['raw'] + list(layers.keys())
         self.seg_vols = [[self.layer_names[1]], [self.layer_names[2]]]
+
+        if ini_dir == None:
+            self.ini_dir = os.path.dirname(os.path.abspath(__file__))
+        else:
+            self.ini_dir = ini_dir
+
         super().__init__(raw_data, layers, **kwargs)
 
     def _init_viewer(self, raw_data, layers={}):
@@ -438,12 +455,123 @@ class _ViewerBase2Col(_ViewerBase):
                                 lambda s: self._toggle_layout(
                                     self.layer_names[2]))
 
-        _DEFAULT_DIR = os.path.dirname(os.path.abspath(__file__))
         fn = 'KEYBINDINGS_viewerbase2col.ini'
-        config_file = os.path.join(_DEFAULT_DIR, fn)
+        config_file = os.path.join(self.ini_dir, fn)
         if not os.path.exists(config_file):
             raise FileNotFoundError
         self._bind_pairs(config_file)
+
+
+class SegmentBrowser(_ViewerBase):
+    """Class for browsing through segments in lists"""
+
+    def __init__(self, items, raw_data, layers, coord_lst=None, cur_idx=None,
+                 ini_dir=None, remove_token=False):
+        """
+        Args:
+            items (dict) : dictionary that maps lists of segments to browse
+                           through (value) to layer name (key). If item lists
+                           of all individual layers differ in length, layers
+                           with shorter lists will be left empty at the end
+            raw_data (str) : image data volume id :
+                            data_src:project:dataset:volume_name
+            layers (dict) : dict with layer names as keys and layer ids as
+                            values
+            coord_lst (list) : list of coordinates to set the viewport to.
+                               Needs to have at least as many entries as the
+                               longest item list. Optional
+            cur_idx (int) : List index to start browsing. Optional
+            ini_dir (str) : Path to directory of ini file for key bindings
+            remove_token (bool) : determines whether to remove personalised
+                                  token created during the neuroglancer
+                                  authentication procedure. Optional
+        """
+        # check and set directory of key bindings ini file
+        if ini_dir == None:
+            self.ini_dir = os.path.dirname(os.path.abspath(__file__))
+        else:
+            self.ini_dir = ini_dir
+
+        super(SegmentBrowser, self).__init__(raw_data=raw_data, layers=layers,
+                                             remove_token=remove_token)
+
+
+        # create attributes for browsing through segment items
+        self.lst_max = max([len(v) for v in items.values()])
+        self.items = items
+
+        self.coords = coord_lst
+        if self.coords:
+            if len(self.coords) < self.lst_max:
+                msg = 'coordinate list is shorter than item list'
+                self.upd_msg(msg)
+                print(msg)
+                self.exit()
+
+        self.current_idx = 0
+        if cur_idx is not None:
+            self.current_idx = cur_idx
+        self.display_current()
+
+    def _set_keybindings(self):
+        """Binds strings to call back functions"""
+        self.viewer.actions.add('next_item',
+                                lambda s: self.next_item())
+        self.viewer.actions.add('previous_item',
+                                lambda s: self.prev_item())
+        self.viewer.actions.add('exit',
+                                lambda s: self.exit())
+
+        fn = 'KEYBINDINGS_browse_segments.ini'
+        config_file = os.path.join(self.ini_dir, fn)
+        if not os.path.exists(config_file):
+            raise FileNotFoundError
+        self._bind_pairs(config_file)
+
+    def next_item(self):
+        """increments neuron index and triggers viewer update"""
+        if self.current_idx + 1 >= self.lst_max:
+            self.current_idx = 0
+        else:
+            self.current_idx += 1
+
+        self.display_current()
+
+    def prev_item(self):
+        """decrements neuron index and triggers viewer update"""
+        if self.current_idx == 0:
+            self.current_idx = self.lst_max - 1
+        else:
+            self.current_idx -= 1
+
+        self.display_current()
+
+    def display_current(self):
+        """triggers display of current neuron and neuron group in the viewer"""
+        for layer in self.items.keys():
+            print(layer)
+            if len(self.items[layer]) <= self.current_idx:
+                segments = []
+            else:
+                segments = self.items[layer][self.current_idx]
+            print(segments)
+            self.upd_viewer_segments(layer, segments)
+            self.upd_segment_query(layer, segments)
+
+        if self.coords:
+            self.set_viewer_loc(self.coords[self.current_idx])
+
+        self.display_info()
+
+    def display_info(self):
+        """displays current group and neuron idx in the neuroglancer message
+        panel"""
+        msg = 'displaying items {} of {}'.format(self.current_idx, self.lst_max)
+        self.upd_msg(msg)
+
+    def exit(self):
+        """exits program"""
+        self.exit_event.set()
 
 
 class Annotations:
