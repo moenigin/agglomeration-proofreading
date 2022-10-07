@@ -9,6 +9,9 @@ from threading import Thread, Event
 
 # Todo: outsource to separate package? add function to retrieve selected items
 #  from all visible layers (or a distinct layer)
+# todo annotations:
+#  1. allow to add several annotation layers
+#  2. allow link the annotation layer to specific target segmentation layers
 
 class _ViewerBase:
     """Base class for neuroglancer viewer
@@ -264,6 +267,55 @@ class _ViewerBase:
         s.voxel_coordinates = coord
         self.viewer.set_state(s)
 
+    def cursor_misplaced_msg(self):
+        """function to display message that cursor was misplaced"""
+        msg = 'Cursor misplaced - try again'
+        self.upd_msg(msg)
+
+    def get_cursor_position(self, action_state):
+        """returns coordinates of the cursor position from a neuroglancer action
+        state
+
+        Args:
+            action_state : neuroglancer.viewer_config_state.ActionState
+
+        Returns:
+            segment id : int or None
+        """
+        try:
+            cursor_position = [int(x) for x in
+                               action_state.mouse_voxel_coordinates]
+        except KeyError:
+            self.cursor_misplaced_msg()
+            return
+
+        return cursor_position
+
+    def _get_sv_id(self, action_state, layer):
+        #todo: this could be abstracted further to allow retrieval of any kind
+        # of value in the selctedLayerState. Function could accept a default value
+        """returns id of the segment at cursor position in a given layer from a
+        neuroglancer action state
+
+        Args:
+            action_state : neuroglancer.viewer_config_state.ActionState
+
+        Returns:
+            segment id : int or None
+        """
+        try:
+            selected_object = action_state.selected_values[layer].value
+        except KeyError:
+            self.cursor_misplaced_msg()
+            return
+
+        if isinstance(selected_object, int):
+            if selected_object != 0:
+                return selected_object
+
+        self.cursor_misplaced_msg()
+        return
+
     def toggle_opacity(self, layer):
         """Allows to toggle the opacity of the segments in a layer between 0,
         0.25 and 0.5.
@@ -466,7 +518,7 @@ class SegmentBrowser(_ViewerBase):
     """Class for browsing through segments in lists"""
 
     def __init__(self, items, raw_data, layers, coord_lst=None, cur_idx=None,
-                 ini_dir=None, remove_token=False):
+                 ini_dir=None, remove_token=False, **kwargs):
         """
         Args:
             items (dict) : dictionary that maps lists of segments to browse
@@ -489,12 +541,15 @@ class SegmentBrowser(_ViewerBase):
         # check and set directory of key bindings ini file
         if ini_dir == None:
             self.ini_dir = os.path.dirname(os.path.abspath(__file__))
+            print(os.path.abspath(__file__))
+            print(self.ini_dir)
         else:
             self.ini_dir = ini_dir
+            print(self.ini_dir, 'from input argument')
 
         super(SegmentBrowser, self).__init__(raw_data=raw_data, layers=layers,
-                                             remove_token=remove_token)
-
+                                             remove_token=remove_token,
+                                             **kwargs)
 
         # create attributes for browsing through segment items
         self.lst_max = max([len(v) for v in items.values()])
@@ -505,7 +560,6 @@ class SegmentBrowser(_ViewerBase):
             if len(self.coords) < self.lst_max:
                 msg = 'coordinate list is shorter than item list'
                 self.upd_msg(msg)
-                print(msg)
                 self.exit()
 
         self.current_idx = 0
@@ -523,6 +577,7 @@ class SegmentBrowser(_ViewerBase):
                                 lambda s: self.exit())
 
         fn = 'KEYBINDINGS_browse_segments.ini'
+        print(self.ini_dir, fn)
         config_file = os.path.join(self.ini_dir, fn)
         if not os.path.exists(config_file):
             raise FileNotFoundError
@@ -549,12 +604,10 @@ class SegmentBrowser(_ViewerBase):
     def display_current(self):
         """triggers display of current neuron and neuron group in the viewer"""
         for layer in self.items.keys():
-            print(layer)
             if len(self.items[layer]) <= self.current_idx:
                 segments = []
             else:
                 segments = self.items[layer][self.current_idx]
-            print(segments)
             self.upd_viewer_segments(layer, segments)
             self.upd_segment_query(layer, segments)
 

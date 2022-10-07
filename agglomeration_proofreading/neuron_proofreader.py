@@ -179,7 +179,7 @@ class NeuronProofreading(_ViewerBase2Col):
         self.base_layer = 'base'
         self.aggl_layer = 'agglo'
         layers = {self.aggl_layer: base_vol, self.base_layer: base_vol}
-        
+
         # load data
         last_position = None
         self.load_data_msg = ''
@@ -607,8 +607,9 @@ class NeuronProofreading(_ViewerBase2Col):
         """Retrieves the last branch location that was set and sets the viewer
         position to that location."""
         if any(self.branch_point):
-            bps = [i for i, point in enumerate(self.branch_point[:])             if not point[1]]
-            if any (bps):
+            bps = [i for i, point in enumerate(self.branch_point[:]) if
+                   not point[1]]
+            if any(bps):
                 idx = max(bps)
                 coord = self.branch_point[idx][0]
                 self.set_viewer_loc(coord)
@@ -790,13 +791,13 @@ class NeuronProofreading(_ViewerBase2Col):
                 if any(isinstance(item, list) for item in edges):
                     partners = set(flat_list(edges))
                     msg = 'Mergers cannot be split: The selected segment is not ' \
-                           'assigned to the neuron graph.'
+                          'assigned to the neuron graph.'
                 elif any(isinstance(item, int) for item in edges):
                     partners = segment
                     msg = 'The selected segment has no partners'
                 else:
-                    print('show_connected_partners return unexpected result for '
-                          'segment', segment)
+                    print('show_connected_partners return unexpected result'
+                          ' for segment', segment)
             self.upd_viewer_segments(self.base_layer, partners)
 
             self.upd_msg(msg)
