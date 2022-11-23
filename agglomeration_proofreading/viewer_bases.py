@@ -7,8 +7,8 @@ from selenium import webdriver
 from threading import Thread, Event
 
 
-# Todo: outsource to separate package? add function to retrieve selected items
-#  from all visible layers (or a distinct layer)
+# Todo: outsource to separate package?
+#  make more flexible viewer intiation, e.g. allow to read viewerstate from URl
 # todo annotations:
 #  1. allow to add several annotation layers
 #  2. allow link the annotation layer to specific target segmentation layers
@@ -50,12 +50,12 @@ class _ViewerBase:
         """
 
     def __init__(self,
-                 raw_data,
+                 raw_data='',
                  layers={},
+                 viewer_state=None,
                  annotation=False,
                  timer_interval=None,
                  remove_token=True,
-                 # coordinate_lists=None,
                  **kwargs):
         """Initiates viewer base class by
 
@@ -67,6 +67,8 @@ class _ViewerBase:
             raw_data (str) : full id of the raw data layer in form of
                              "src:projectId:datasetId:volumeId"
             layers (dict) : dict with layer names as keys and layer ids as values
+            viewer_state(neuroglancer.ViewerState): ViewerState with which the
+                                                    viewer is initialized
             annotation (bool) : determines whether to build a viewer with
                                 annotation layer, optional
             timer_interval (int) : interval between timer execution, if set
@@ -74,9 +76,6 @@ class _ViewerBase:
             remove_token (bool) : determines whether to remove personalised
                                   token created during the neuroglancer
                                   authentication procedure
-            coordinate_lists (dict) : dictionary with keys = list name and
-                                      values = list of coordinates to which to
-                                      jump to
         """
         self.dimensions = None
         self.viewer = neuroglancer.Viewer()
@@ -106,7 +105,7 @@ class _ViewerBase:
         self.remove_token = remove_token
         self.exit_event = Event()
         self._driver = None
-        self._init_viewer(raw_data, layers)
+        self._init_viewer(raw_data, layers, viewer_state)
         self._set_keybindings()
         self._run_browser()
 
@@ -118,32 +117,43 @@ class _ViewerBase:
         self._clean_exit()
 
     # VIEWER SETUP
-    def _init_viewer(self, raw_data, layers={}):
+    def _init_viewer(self, raw_data, layers, viewer_state):
         """Initiates the neuroglancer viewer.
 
-        The neuroglancer viewer is initiated in a 3 row layout.The first column
-        displays the xy image view overlaying the raw data, the base
-        segmentation volume, the agglomerated segmentation volume and an
-        annotation layer. The second column displays the 3D view of the
-        agglomeration volume and the annotation layer. The 3rd column displays
-        the perspective view of base segmentation volume.
+        Args:
+            raw_data (str, list. optional) : address to the raw_data volume or
+                                             list of addresses to raw data
+                                             volumes. Several raw data volumes
+                                             may be useful to add e.g. a
+                                             denoised version of the raw data
+                                             volume
+            layers(dict, optional): mapping of layer_name(str) to layer source
+                                    (brainmaps address) for all
+            viewer_state(neuroglancer.Viewerstate):
 
-        Args: raw_data (str) : address to the raw_data volume
-             base_vol (str) : address to the base volume
-             center (list) : voxel coordinates to the volume center as a
-             starting position : [x,y,z]
+        Returns:
+
         """
-        s = deepcopy(self.viewer.state)
-        s.layers['raw'] = neuroglancer.ImageLayer(source=raw_data)
-        for name, src in layers.items():
-            s.layers[name] = neuroglancer.SegmentationLayer(source=src)
-        if self.annotation_flag:
-            name = next(iter(layers.values()))
-            self.get_dimensions_timer.start_timer(self._add_annotation_layer,
-                                                  name)
-        s.layout = 'xy-3d'
-        s.showSlices = False
-        self.viewer.set_state(s)
+        if viewer_state is not None:
+            self.viewer.set_state(viewer_state)
+        else:
+            s = deepcopy(self.viewer.state)
+            if isinstance(raw_data, str):
+                s.layers['raw'] = neuroglancer.ImageLayer(source=raw_data)
+            elif isinstance(raw_data, list):
+                for i, data_src in enumerate(raw_data):
+                    s.layers['raw{}'.format(i)] = neuroglancer.ImageLayer(
+                        source=data_src)
+            for name, src in layers.items():
+                s.layers[name] = neuroglancer.SegmentationLayer(source=src)
+            if self.annotation_flag:
+                name = next(iter(layers.values()))
+                self.get_dimensions_timer.start_timer(
+                    self._add_annotation_layer,
+                    name)
+            s.layout = 'xy-3d'
+            s.showSlices = False
+            self.viewer.set_state(s)
 
     def _add_annotation_layer(self, name):
         """Adds an annotation layer to the viewer.
@@ -253,6 +263,20 @@ class _ViewerBase:
             s.layers[layer].segmentQuery = ', '.join(
                 [str(seg) for seg in segments])
 
+    def get_selected_segments(self, layer):
+        """retrieves selected segments from a layer
+
+        Args:
+            layer: name of the layer of interest
+
+        Returns:
+            list of segment ids selected in layer
+
+        """
+        s = deepcopy(self.viewer.state)
+        objects = list(s.layers[layer].segments)
+        return objects
+
     def get_viewport_loc(self):
         """retrieves voxel coordinates of the viewport center"""
         return [int(x) for x in self.viewer.state.voxel_coordinates]
@@ -292,8 +316,8 @@ class _ViewerBase:
         return cursor_position
 
     def _get_sv_id(self, action_state, layer):
-        #todo: this could be abstracted further to allow retrieval of any kind
-        # of value in the selctedLayerState. Function could accept a default value
+        # todo: this could be abstracted further to allow retrieval of any kind
+        #  of value in the selctedLayerState. Function could accept a default value
         """returns id of the segment at cursor position in a given layer from a
         neuroglancer action state
 
@@ -517,8 +541,9 @@ class _ViewerBase2Col(_ViewerBase):
 class SegmentBrowser(_ViewerBase):
     """Class for browsing through segments in lists"""
 
-    def __init__(self, items, raw_data, layers, coord_lst=None, cur_idx=None,
-                 ini_dir=None, remove_token=False, **kwargs):
+    def __init__(self, items, raw_data='', layers={}, viewer_state=None,
+                 coord_lst=None, cur_idx=None, ini_dir=None, remove_token=False,
+                 **kwargs):
         """
         Args:
             items (dict) : dictionary that maps lists of segments to browse
@@ -548,12 +573,14 @@ class SegmentBrowser(_ViewerBase):
             print(self.ini_dir, 'from input argument')
 
         super(SegmentBrowser, self).__init__(raw_data=raw_data, layers=layers,
+                                             viewer_state=viewer_state,
                                              remove_token=remove_token,
                                              **kwargs)
 
         # create attributes for browsing through segment items
-        self.lst_max = max([len(v) for v in items.values()])
+        self.lst_max = 0
         self.items = items
+        self.update_lst_max()
 
         self.coords = coord_lst
         if self.coords:
@@ -619,8 +646,14 @@ class SegmentBrowser(_ViewerBase):
     def display_info(self):
         """displays current group and neuron idx in the neuroglancer message
         panel"""
-        msg = 'displaying items {} of {}'.format(self.current_idx, self.lst_max)
+        msg = 'current index {}, ({}/{})'.format(self.current_idx,
+                                                 self.current_idx+1,
+                                                 self.lst_max)
         self.upd_msg(msg)
+
+    def update_lst_max(self):
+        """update maximal entry in lists in item list"""
+        self.lst_max = max([len(v) for v in self.items.values()])
 
     def exit(self):
         """exits program"""
