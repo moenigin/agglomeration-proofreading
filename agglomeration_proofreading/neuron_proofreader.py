@@ -213,7 +213,7 @@ class NeuronProofreading(_ViewerBase2Col):
 
     # VIEWER SETUP
     def _set_keybindings(self):
-        """Binds key board events to call back functions"""
+        """Binds keyboard events to call back functions"""
         super()._set_keybindings()
         self.viewer.actions.add('select', self._handle_select)
         self.viewer.actions.add('select_base', self._handle_select_base)
@@ -274,7 +274,7 @@ class NeuronProofreading(_ViewerBase2Col):
             for point in self.branch_point:
                 if point[1]:
                     annocount += 1
-                    self.annotation._make_ellipsoid('', point[0])
+                    self.annotation.make_ellipsoid('', point[0])
 
     # VIEWER INTERACTION
     def _handle_select(self, action_state):
@@ -421,7 +421,7 @@ class NeuronProofreading(_ViewerBase2Col):
         # When equivalences are set via the neuroglancer equivalence dictionary
         # the selected_values objects retrieved in the action state is of type
         # MapEntrys with the first entry being the segment id and the second the
-        # mapped/agglomerated id. Otherwise the segment id is an int.
+        # mapped/agglomerated id. Otherwise, the segment id is an int.
         return_val = None
         if isinstance(selected_object,
                       neuroglancer.viewer_config_state.SegmentIdMapEntry):
@@ -600,7 +600,7 @@ class NeuronProofreading(_ViewerBase2Col):
             # (=>point[1] == False)
             idx = max([i for i, point in enumerate(self.branch_point[:])
                        if not point[1]])
-            self.annotation._make_ellipsoid('', self.branch_point[idx][0])
+            self.annotation.make_ellipsoid('', self.branch_point[idx][0])
             self.branch_point[idx][1] = True
 
     def _jump_to_branch_loc(self):

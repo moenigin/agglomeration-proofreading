@@ -5,13 +5,15 @@ from copy import deepcopy
 from configparser import ConfigParser
 from selenium import webdriver
 from threading import Thread, Event
+from agglomeration_proofreading.ap_utils import int_to_list
 
 
 # Todo: outsource to separate package?
 #  make more flexible viewer intiation, e.g. allow to read viewerstate from URl
 # todo annotations:
 #  1. allow to add several annotation layers
-#  2. allow link the annotation layer to specific target segmentation layers
+#  2. allow nameing of annotation layer
+#  3. allow to link the annotation layer to a specific target segmentation layers
 
 class _ViewerBase:
     """Base class for neuroglancer viewer
@@ -146,6 +148,7 @@ class _ViewerBase:
                         source=data_src)
             for name, src in layers.items():
                 s.layers[name] = neuroglancer.SegmentationLayer(source=src)
+            # refactor to method that builds one or mor annotation layers
             if self.annotation_flag:
                 name = next(iter(layers.values()))
                 self.get_dimensions_timer.start_timer(
@@ -158,7 +161,7 @@ class _ViewerBase:
     def _add_annotation_layer(self, name):
         """Adds an annotation layer to the viewer.
 
-        In neuroglancer >= 2.0 the annotation layer requires an dimension
+        In neuroglancer >= 2.0 the annotation layer requires a dimension
         argument. This CoordinateSpace dictionary is read out from the viewer
         state once the data has been retrieved from the server and this
         information has been written to the viewer state.
@@ -250,8 +253,7 @@ class _ViewerBase:
             layer (str) : name of the target layer
             segments (list or set) : segments to display
         """
-        if isinstance(segments, int):
-            segments = [segments]
+        segments = int_to_list(segments)
         with self.viewer.txn() as s:
             s.layers[layer].segments = segments
 
@@ -444,7 +446,7 @@ class _ViewerBase2Col(_ViewerBase):
     """
 
     def __init__(self,
-                 raw_data,
+                 raw_data='',
                  layers={},
                  ini_dir=None,
                  **kwargs):
@@ -468,7 +470,7 @@ class _ViewerBase2Col(_ViewerBase):
 
         super().__init__(raw_data, layers, **kwargs)
 
-    def _init_viewer(self, raw_data, layers={}):
+    def _init_viewer(self, raw_data, layers={}, viewer_state=None):
         """Initiates the neuroglancer viewer.
 
         The neuroglancer viewer is initiated in a 3 row layout.The first column
@@ -483,7 +485,7 @@ class _ViewerBase2Col(_ViewerBase):
              center (list) : voxel coordinates to the volume center as a
              starting position : [x,y,z]
         """
-        super()._init_viewer(raw_data, layers)
+        super()._init_viewer(raw_data, layers, viewer_state)
         # update lists of layer names for the row_layout LayerGroupViewer
         # settings if an annotation layer is added
         if self.annotation_flag:
@@ -564,13 +566,10 @@ class SegmentBrowser(_ViewerBase):
                                   authentication procedure. Optional
         """
         # check and set directory of key bindings ini file
-        if ini_dir == None:
+        if ini_dir is None:
             self.ini_dir = os.path.dirname(os.path.abspath(__file__))
-            print(os.path.abspath(__file__))
-            print(self.ini_dir)
         else:
             self.ini_dir = ini_dir
-            print(self.ini_dir, 'from input argument')
 
         super(SegmentBrowser, self).__init__(raw_data=raw_data, layers=layers,
                                              viewer_state=viewer_state,
@@ -595,7 +594,7 @@ class SegmentBrowser(_ViewerBase):
         self.display_current()
 
     def _set_keybindings(self):
-        """Binds strings to call back functions"""
+        """Binds keyboard and/or mouse commands to call back functions"""
         self.viewer.actions.add('next_item',
                                 lambda s: self.next_item())
         self.viewer.actions.add('previous_item',
@@ -604,7 +603,6 @@ class SegmentBrowser(_ViewerBase):
                                 lambda s: self.exit())
 
         fn = 'KEYBINDINGS_browse_segments.ini'
-        print(self.ini_dir, fn)
         config_file = os.path.join(self.ini_dir, fn)
         if not os.path.exists(config_file):
             raise FileNotFoundError
@@ -647,13 +645,13 @@ class SegmentBrowser(_ViewerBase):
         """displays current group and neuron idx in the neuroglancer message
         panel"""
         msg = 'current index {}, ({}/{})'.format(self.current_idx,
-                                                 self.current_idx+1,
+                                                 self.current_idx + 1,
                                                  self.lst_max)
         self.upd_msg(msg)
 
     def update_lst_max(self):
         """update maximal entry in lists in item list"""
-        self.lst_max = max([len(v) for v in self.items.values()])
+        self.lst_max = max([len(int_to_list(v)) for v in self.items.values()])
 
     def exit(self):
         """exits program"""
@@ -668,56 +666,97 @@ class Annotations:
         """initiates Annotations class
 
         Args:
-            anno_id (int): id of the next annotation
+            anno_id (int): integer counter to id of the next annotation,
+                           neuroglancer needs a disitnct str identifying an
+                           annotation, if no id is supplied when creating a
+                           given annotation this counter will be used
             viewer: viewer (neuroglancer.viewer)
         """
         self.anno_id = anno_id
         self.viewer = viewer
 
-    def _make_ellipsoid(self, layer, location):  # Todo
+    def mk_anno_id(self, id_):
+        """creates annotation id from either local counter or input
+
+        Args:
+            id_:
+
+        Returns: str identifier for annotation
+
+        """
+        if id_ is not None:
+            id_str = str(id_)
+        else:
+            self.anno_id += 1
+            id_str = str(self.anno_id)
+
+        return id_str
+
+    def mk_annotation(self, layer, anno):
+        """creates actual annotation
+
+        Args:
+            layer (str) : name of the target layer
+            anno: neuroglancer annotation
+        """
+        with self.viewer.txn() as s:
+            annotations = s.layers[layer].annotations
+            annotations.append(anno)
+
+    def make_ellipsoid(self, layer, location, radii=[25, 25, 10], id_=None):
         """Sets an ellipsoid annotation
 
         Args:
             layer (str) : name of the target layer
             location (list) : ellipsoid center in voxel coordinates [x,y,z]
             radii (list) :  ellipsoid radii [x,y,z] (optional)
+            id_(str, int, optional): id of annotation
         """
-        self.anno_id += 1
-        with self.viewer.txn() as s:
-            annotations = s.layers[layer].annotations
-            annotations.append(
-                neuroglancer.EllipsoidAnnotation(id=str(self.anno_id),
-                                                 center=location,
-                                                 radii=[25, 25, 10]))
+        anno = neuroglancer.EllipsoidAnnotation(id=self.mk_anno_id(id_),
+                                                center=location,
+                                                radii=radii)
+        self.mk_annotation(layer, anno)
 
-    def _make_point(self, layer, location):
+    def make_point_annotation(self, layer, location, id_=None):
         """Sets a point annotation
 
         Args:
             layer (str) : name of the target layer
             location (list) : voxel coordinates [x,y,z]
+            id_(str, int, optional): id of annotation
         """
-        self.anno_id += 1
-        with self.viewer.txn() as s:
-            annotations = s.layers[layer].annotations
-            annotations.append(
-                neuroglancer.PointAnnotation(id=str(self.anno_id),
-                                             point=location))
+        anno = neuroglancer.PointAnnotation(id=self.mk_anno_id(id_),
+                                            point=location)
+        self.mk_annotation(layer, anno)
 
-    def _make_line(self, layer, pointa, pointb):
+    def make_line(self, layer, pointa, pointb, id_=None):
         """makes a line annotation
 
         Args:
             layer (str) : name of the target layer
             pointa (list) : voxel coordinates [x,y,z]
             pointb (list) : voxel coordinates [x,y,z]
+            id_(str, int, optional): id of annotation
         """
-        self.anno_id += 1
-        with self.viewer.txn() as s:
-            annotations = s.layers[layer].annotations
-            annotations.append(
-                neuroglancer.LineAnnotation(id=str(self.anno_id),
-                                            point_a=pointa), point_b=pointb)
+        anno = neuroglancer.LineAnnotation(id=self.mk_anno_id(id_),
+                                           point_a=pointa, point_b=pointb)
+        self.mk_annotation(layer, anno)
+
+    def mk_box_annotation(self, layer, pointa, pointb, id_=None):
+        """create a bounding box or cuboid annotation
+
+        Args:
+            layer (str) : name of the target layer
+            pointa (list) : voxel coordinates [x,y,z] of the box origin
+            pointb (list) : voxel coordinates [x,y,z] of the maximal extend
+                            of the box
+            id_(str, int, optional): id of annotation
+        """
+        anno = neuroglancer.AxisAlignedBoundingBoxAnnotation(pointA=pointa,
+                                                             pointB=pointb,
+                                                             id=self.mk_anno_id(
+                                                                 id_))
+        self.mk_annotation(layer, anno)
 
 
 class Timer:
