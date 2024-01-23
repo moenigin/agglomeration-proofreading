@@ -4,6 +4,7 @@ import os
 import re
 
 from brainmaps_api_fcn.equivalence_requests import EquivalenceRequests
+from graph_from_bigquery.graph_from_bigquery import BigQueryAgglomerationGraph
 from agglomeration_proofreading.neuron_proofreader import NeuronProofreading
 from agglomeration_proofreading.API_interface import GraphTools
 from agglomeration_proofreading.config_fcn import determine_args
